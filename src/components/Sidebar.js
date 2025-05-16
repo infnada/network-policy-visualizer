@@ -10,7 +10,9 @@ const Sidebar = ({
   handleUseSampleData,
   handlePasteContent,
   setShowPolicyDetails,
-  setFilteredPolicies, // New prop to pass filtered policies up to parent
+  setFilteredPolicies,
+  onDirectionFilterChange,
+  directionFilter = "all",
 }) => {
   const [filters, setFilters] = useState({
     namespaces: [],
@@ -24,11 +26,11 @@ const Sidebar = ({
   const [localFilteredPolicies, setLocalFilteredPolicies] = useState([]);
 
   // UI state
-  const [expandedSection, setExpandedSection] = useState("upload"); // 'upload', 'filters', 'policies'
+  const [expandedSection, setExpandedSection] = useState("upload");
   const [namespaceDropdownOpen, setNamespaceDropdownOpen] = useState(false);
   const [podDropdownOpen, setPodDropdownOpen] = useState(false);
 
-  // Extract available filter options from policies - memo to prevent unnecessary recalculation
+  // Extract available filter options from policies
   useEffect(() => {
     const namespaces = [...new Set(policies.map((p) => p.namespace))];
     setAvailableNamespaces(namespaces);
@@ -51,7 +53,7 @@ const Sidebar = ({
     setLocalFilteredPolicies(policies);
   }, [policies]);
 
-  // Memoize the filtered policies to avoid unnecessary recalculations
+  // Memoize the filtered policies
   const filteredPoliciesMemo = useMemo(() => {
     let filtered = [...policies];
 
@@ -90,13 +92,13 @@ const Sidebar = ({
     return filtered;
   }, [policies, filters]);
 
-  // Update local state and propagate changes to parent only when filtered results change
+  // Update local state and propagate changes to parent
   useEffect(() => {
     setLocalFilteredPolicies(filteredPoliciesMemo);
     setFilteredPolicies(filteredPoliciesMemo);
   }, [filteredPoliciesMemo, setFilteredPolicies]);
 
-  // Callbacks for filter changes - use useCallback to prevent recreation on every render
+  // Filter callbacks
   const toggleNamespace = useCallback((namespace) => {
     setFilters((prev) => {
       const namespaces = prev.namespaces.includes(namespace)
@@ -124,17 +126,30 @@ const Sidebar = ({
     }));
   }, []);
 
+  const handleDirectionFilterChange = useCallback(
+    (direction) => {
+      if (onDirectionFilterChange) {
+        onDirectionFilterChange(direction);
+      }
+    },
+    [onDirectionFilterChange],
+  );
+
   const clearFilters = useCallback(() => {
     setFilters({
       namespaces: [],
       pods: [],
       labels: "",
     });
-  }, []);
+    // Reset direction filter to "all"
+    if (onDirectionFilterChange) {
+      onDirectionFilterChange("all");
+    }
+  }, [onDirectionFilterChange]);
 
   const toggleSection = useCallback(
     (section) => {
-      setExpandedSection(expandedSection === section ? null : section);
+      setExpandedSection(section === expandedSection ? null : section);
     },
     [expandedSection],
   );
@@ -161,8 +176,8 @@ const Sidebar = ({
 
   return (
     <div
-      className="w-72 bg-gray-200 p-4 flex flex-col h-full"
-      style={{ overflow: "hidden" }}
+      className="w-72 bg-gray-200 p-4 flex flex-col"
+      style={{ height: "100%", overflow: "hidden" }}
     >
       {/* Section Toggle Buttons */}
       <div className="flex space-x-1 mb-4">
@@ -227,11 +242,11 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* Expandable Sections Container - this will flex and allow scrolling */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      {/* Expandable Sections Container */}
+      <div className="flex-1 overflow-hidden">
         {/* Upload Section */}
         {expandedSection === "upload" && (
-          <div className="flex-1 overflow-auto">
+          <div className="h-full overflow-auto">
             <h2 className="text-lg font-semibold mb-2">Upload Policies</h2>
             <div className="flex flex-col space-y-2">
               <label
@@ -286,7 +301,7 @@ const Sidebar = ({
 
         {/* Filters Section */}
         {expandedSection === "filters" && (
-          <div className="flex-1 overflow-auto">
+          <div className="h-full overflow-auto">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-semibold">Filters</h2>
               <button
@@ -298,6 +313,45 @@ const Sidebar = ({
             </div>
 
             <div className="space-y-3">
+              {/* Traffic Direction Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Traffic Direction
+                </label>
+                <div className="flex space-x-1 w-full">
+                  <button
+                    className={`flex-1 px-2 py-1 text-xs rounded ${
+                      directionFilter === "all"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-300"
+                    }`}
+                    onClick={() => handleDirectionFilterChange("all")}
+                  >
+                    All
+                  </button>
+                  <button
+                    className={`flex-1 px-2 py-1 text-xs rounded ${
+                      directionFilter === "ingress"
+                        ? "bg-red-500 text-white"
+                        : "bg-gray-300"
+                    }`}
+                    onClick={() => handleDirectionFilterChange("ingress")}
+                  >
+                    Ingress
+                  </button>
+                  <button
+                    className={`flex-1 px-2 py-1 text-xs rounded ${
+                      directionFilter === "egress"
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-300"
+                    }`}
+                    onClick={() => handleDirectionFilterChange("egress")}
+                  >
+                    Egress
+                  </button>
+                </div>
+              </div>
+
               {/* Namespace Multi-select Dropdown */}
               <div className="relative namespace-dropdown">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -443,7 +497,7 @@ const Sidebar = ({
           </div>
         )}
 
-        {/* Policies Section - Explicitly setting overflow-auto on this div */}
+        {/* Policies Section */}
         {expandedSection === "policies" && (
           <div className="flex-1 flex flex-col overflow-hidden">
             <h2 className="text-lg font-semibold mb-2 flex-shrink-0">

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import PolicyDetails from "./PolicyDetails";
 import GraphVisualization from "./GraphVisualization";
 import Sidebar from "./Sidebar";
@@ -16,6 +16,8 @@ const NetworkPolicyVisualizer = () => {
   const [loading, setLoading] = useState(false);
   const [pasteContent, setPasteContent] = useState("");
   const [showPolicyDetails, setShowPolicyDetails] = useState(null);
+  // Add state for direction filter - we'll get this from the Sidebar component
+  const [directionFilter, setDirectionFilter] = useState("all");
 
   const readFileContent = (file) => {
     return new Promise((resolve, reject) => {
@@ -27,9 +29,39 @@ const NetworkPolicyVisualizer = () => {
   };
 
   // Memoize the graph data to prevent unnecessary recalculations
+  // Enhanced to apply direction filtering at the graph level
   const memoizedGraphData = useMemo(() => {
-    return buildGraphData(filteredPolicies);
-  }, [filteredPolicies]);
+    const baseGraphData = buildGraphData(filteredPolicies);
+
+    // If directionFilter is "all", return the full graph
+    if (directionFilter === "all") {
+      return baseGraphData;
+    }
+
+    // Filter links based on direction
+    const filteredLinks = baseGraphData.links.filter(
+      (link) => link.direction === directionFilter,
+    );
+
+    // Get unique node IDs that are still being used in the filtered links
+    const nodeIdsInUse = new Set();
+    filteredLinks.forEach((link) => {
+      nodeIdsInUse.add(link.source);
+      nodeIdsInUse.add(link.target);
+    });
+
+    // Filter nodes to only include those that are connected in the filtered links
+    const filteredNodes = baseGraphData.nodes.filter(
+      (node) =>
+        nodeIdsInUse.has(node.id) ||
+        (typeof node.id === "object" && nodeIdsInUse.has(node.id.id)),
+    );
+
+    return {
+      nodes: filteredNodes,
+      links: filteredLinks,
+    };
+  }, [filteredPolicies, directionFilter]);
 
   // Only update graph data when the memoized value changes
   useEffect(() => {
@@ -227,6 +259,11 @@ spec:
     }
   };
 
+  // Function to handle direction filter changes from the Sidebar
+  const handleDirectionFilterChange = (direction) => {
+    setDirectionFilter(direction);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <header className="bg-blue-600 text-white p-4">
@@ -247,6 +284,8 @@ spec:
           handlePasteContent={handlePasteContent}
           setShowPolicyDetails={setShowPolicyDetails}
           setFilteredPolicies={setFilteredPolicies}
+          onDirectionFilterChange={handleDirectionFilterChange}
+          directionFilter={directionFilter}
         />
 
         <GraphVisualization graphData={graphData} />
