@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PolicyDetails from "./PolicyDetails";
-import GraphVisualization from "./GraphVisualization";
+import GraphVisualization from "./graph/GraphVisualization";
 import Sidebar from "./Sidebar";
-import {
-  parseYaml,
-  parseNetworkPolicy,
-  buildGraphData,
-} from "../utils/parsers";
+import { parseYaml, parseNetworkPolicy } from "../utils/parsers";
+// Import the enhanced buildGraphData function directly -
+// We're assuming you'll copy the function from the first artifact into your parsers.js file
+import { buildGraphData } from "../utils/enhancedParsers";
 
 const NetworkPolicyVisualizer = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -240,7 +239,48 @@ spec:
         - ipBlock:
             cidr: 10.30.64.144/28
       ports:
-        - port: 8000`;
+        - port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-api
+  namespace: atani-broker
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: api
+      app.kubernetes.io/name: api
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # Allow outbound connections to redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: redis
+              app.kubernetes.io/name: redis
+      ports:
+        - port: 6379
+    # Allow outbound connections to backoffice
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: backoffice
+              app.kubernetes.io/name: backoffice
+      ports:
+        - port: 8000
+  ingress:
+    # Allow inbound connections from frontend services
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: frontend
+              app.kubernetes.io/name: frontend
+      ports:
+        - port: 3000
+`;
   };
 
   const handleUseSampleData = () => {
