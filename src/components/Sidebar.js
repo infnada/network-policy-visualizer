@@ -16,6 +16,7 @@ const Sidebar = ({
   directionFilter = "all",
   deduplicateNodes = true,
   onDeduplicateNodesChange,
+  theme = "light",
   graphData = null, // Optional graph data for additional combined selector extraction
 }) => {
   const [filters, setFilters] = useState({
@@ -533,25 +534,51 @@ const Sidebar = ({
 
   return (
     <div
-      className="w-72 bg-gray-200 p-4 flex flex-col"
+      className={`w-72 ${
+        theme === "dark" ? "cyberpunk-sidebar text-gray-100" : "bg-gray-200"
+      } p-4 flex flex-col`}
       style={{ height: "100%", overflow: "hidden" }}
     >
       {/* Section Toggle Buttons */}
       <div className="flex space-x-1 mb-4">
         <button
-          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${expandedSection === "upload" ? "bg-blue-500 text-white" : "bg-gray-300"}`}
+          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${
+            expandedSection === "upload"
+              ? theme === "dark"
+                ? "bg-cyan-600 text-white"
+                : "bg-blue-500 text-white"
+              : theme === "dark"
+                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                : "bg-gray-300"
+          }`}
           onClick={() => toggleSection("upload")}
         >
           Upload
         </button>
         <button
-          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${expandedSection === "filters" ? "bg-blue-500 text-white" : "bg-gray-300"}`}
+          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${
+            expandedSection === "filters"
+              ? theme === "dark"
+                ? "bg-cyan-600 text-white"
+                : "bg-blue-500 text-white"
+              : theme === "dark"
+                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                : "bg-gray-300"
+          }`}
           onClick={() => toggleSection("filters")}
         >
           Filters
         </button>
         <button
-          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${expandedSection === "policies" ? "bg-blue-500 text-white" : "bg-gray-300"}`}
+          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${
+            expandedSection === "policies"
+              ? theme === "dark"
+                ? "bg-cyan-600 text-white"
+                : "bg-blue-500 text-white"
+              : theme === "dark"
+                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                : "bg-gray-300"
+          }`}
           onClick={() => toggleSection("policies")}
         >
           Policies
@@ -559,7 +586,11 @@ const Sidebar = ({
       </div>
 
       {/* Legend - Always Visible */}
-      <div className="mb-4 p-2 bg-white rounded shadow-sm flex-shrink-0">
+      <div
+        className={`mb-4 p-2 ${
+          theme === "dark" ? "cyberpunk-card" : "bg-white rounded shadow-sm"
+        } flex-shrink-0`}
+      >
         <h2 className="text-sm font-semibold mb-2">Legend</h2>
         <div className="space-y-1 text-xs">
           <div className="flex items-center">
@@ -607,7 +638,11 @@ const Sidebar = ({
             <h2 className="text-lg font-semibold mb-2">Upload Policies</h2>
             <div className="flex flex-col space-y-2">
               <label
-                className="cursor-pointer border-2 border-dashed border-gray-400 rounded p-3 text-center hover:bg-gray-300 transition"
+                className={`cursor-pointer border-2 border-dashed ${
+                  theme === "dark"
+                    ? "border-cyan-700 hover:bg-gray-800 text-cyan-400"
+                    : "border-gray-400 hover:bg-gray-300"
+                } rounded p-3 text-center transition`}
                 htmlFor="file-upload"
               >
                 <span className="block text-sm">
@@ -624,19 +659,29 @@ const Sidebar = ({
               </label>
               <button
                 onClick={handleUseSampleData}
-                className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                className={`${
+                  theme === "dark"
+                    ? "cyberpunk-button"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                } p-2 rounded transition-colors`}
               >
                 Use Sample Data
               </button>
               <textarea
-                className="border p-2 rounded w-full h-24 text-xs mt-2"
+                className={`border p-2 rounded w-full h-24 text-xs mt-2 ${
+                  theme === "dark" ? "cyberpunk-input" : "bg-white"
+                }`}
                 placeholder="Or paste YAML here and press Load"
                 onChange={(e) => setPasteContent(e.target.value)}
                 value={pasteContent}
               ></textarea>
               <button
                 onClick={handlePasteContent}
-                className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                className={`${
+                  theme === "dark"
+                    ? "cyberpunk-button"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                } p-2 rounded transition-colors`}
                 disabled={!pasteContent}
               >
                 Load Pasted Content
@@ -649,7 +694,13 @@ const Sidebar = ({
             )}
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mt-2">
+              <div
+                className={`${
+                  theme === "dark"
+                    ? "bg-red-900 border-red-700 text-red-200"
+                    : "bg-red-100 border-red-400 text-red-700"
+                } border p-2 rounded mt-2`}
+              >
                 {error}
               </div>
             )}
@@ -663,7 +714,11 @@ const Sidebar = ({
               <h2 className="text-lg font-semibold">Filters</h2>
               <button
                 onClick={clearFilters}
-                className="text-xs text-blue-600 hover:underline"
+                className={`text-xs ${
+                  theme === "dark"
+                    ? "text-cyan-400 hover:text-cyan-300"
+                    : "text-blue-600"
+                } hover:underline`}
               >
                 Clear All
               </button>
@@ -674,19 +729,28 @@ const Sidebar = ({
               <NodeFilter
                 deduplicateNodes={deduplicateNodes}
                 onDeduplicateNodesChange={handleDeduplicateNodesChange}
+                theme={theme}
               />
 
               {/* Traffic Direction Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  className={`block text-sm font-medium ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  } mb-1`}
+                >
                   Traffic Direction
                 </label>
                 <div className="flex space-x-1 w-full">
                   <button
                     className={`flex-1 px-2 py-1 text-xs rounded ${
                       directionFilter === "all"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-300"
+                        ? theme === "dark"
+                          ? "bg-cyan-600 text-white"
+                          : "bg-blue-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-800 text-gray-300"
+                          : "bg-gray-300"
                     }`}
                     onClick={() => handleDirectionFilterChange("all")}
                   >
@@ -695,8 +759,12 @@ const Sidebar = ({
                   <button
                     className={`flex-1 px-2 py-1 text-xs rounded ${
                       directionFilter === "ingress"
-                        ? "bg-red-500 text-white"
-                        : "bg-gray-300"
+                        ? theme === "dark"
+                          ? "bg-red-700 text-white"
+                          : "bg-red-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-800 text-gray-300"
+                          : "bg-gray-300"
                     }`}
                     onClick={() => handleDirectionFilterChange("ingress")}
                   >
@@ -705,8 +773,12 @@ const Sidebar = ({
                   <button
                     className={`flex-1 px-2 py-1 text-xs rounded ${
                       directionFilter === "egress"
-                        ? "bg-green-500 text-white"
-                        : "bg-gray-300"
+                        ? theme === "dark"
+                          ? "bg-green-700 text-white"
+                          : "bg-green-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-800 text-gray-300"
+                          : "bg-gray-300"
                     }`}
                     onClick={() => handleDirectionFilterChange("egress")}
                   >
@@ -717,14 +789,22 @@ const Sidebar = ({
 
               {/* Namespace Multi-select Dropdown with Sort Button */}
               <div className="relative namespace-dropdown">
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                <label
+                  className={`block text-sm font-medium ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  } mb-1 flex justify-between items-center`}
+                >
                   <span>Namespaces</span>
                   <div className="flex items-center">
                     <button
                       className={`text-xs px-2 py-0.5 rounded ${
                         sortNamespaces
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-700"
+                          ? theme === "dark"
+                            ? "bg-cyan-600 text-white"
+                            : "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-800 text-gray-300"
+                            : "bg-gray-200 text-gray-700"
                       }`}
                       onClick={() => setSortNamespaces(!sortNamespaces)}
                       title={
@@ -738,7 +818,11 @@ const Sidebar = ({
                   </div>
                 </label>
                 <div
-                  className="flex items-center justify-between p-2 border rounded bg-white cursor-pointer"
+                  className={`flex items-center justify-between p-2 border rounded ${
+                    theme === "dark"
+                      ? "cyberpunk-input cursor-pointer"
+                      : "bg-white cursor-pointer"
+                  }`}
                   onClick={() =>
                     setNamespaceDropdownOpen(!namespaceDropdownOpen)
                   }
@@ -749,7 +833,7 @@ const Sidebar = ({
                       : "All Namespaces"}
                   </span>
                   <svg
-                    className="h-4 w-4 text-gray-500"
+                    className={`h-4 w-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -764,9 +848,19 @@ const Sidebar = ({
                 </div>
 
                 {namespaceDropdownOpen && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+                  <div
+                    className={`absolute z-10 mt-1 w-full ${
+                      theme === "dark"
+                        ? "bg-gray-900 border border-cyan-800"
+                        : "bg-white border"
+                    } rounded shadow-lg max-h-60 overflow-auto`}
+                  >
                     {availableNamespaces.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500">
+                      <div
+                        className={`p-2 text-sm ${
+                          theme === "dark" ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
                         No namespaces available
                       </div>
                     ) : (
@@ -778,7 +872,11 @@ const Sidebar = ({
                         ).map((namespace) => (
                           <div
                             key={namespace}
-                            className="flex items-center p-2 hover:bg-gray-100"
+                            className={`flex items-center p-2 ${
+                              theme === "dark"
+                                ? "hover:bg-gray-800"
+                                : "hover:bg-gray-100"
+                            }`}
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleNamespace(namespace);
@@ -788,13 +886,25 @@ const Sidebar = ({
                               type="checkbox"
                               checked={filters.namespaces.includes(namespace)}
                               onChange={() => {}}
-                              className="mr-2"
+                              className={`mr-2 ${
+                                theme === "dark"
+                                  ? "text-cyan-500 focus:ring-cyan-600 border-gray-700 bg-gray-800"
+                                  : "text-blue-600 focus:ring-blue-500 border-gray-300"
+                              }`}
                             />
-                            <span className="text-sm flex items-center">
+                            <span
+                              className={`text-sm flex items-center ${
+                                theme === "dark" ? "text-gray-300" : ""
+                              }`}
+                            >
                               {namespace}
                               {combinedNamespaces.has(namespace) && (
                                 <span
-                                  className="ml-1 text-xs px-1 bg-purple-100 text-purple-800 rounded"
+                                  className={`ml-1 text-xs px-1 ${
+                                    theme === "dark"
+                                      ? "bg-purple-900 text-purple-300"
+                                      : "bg-purple-100 text-purple-800"
+                                  } rounded`}
                                   title="Used in combined selectors"
                                 >
                                   combined
@@ -811,14 +921,22 @@ const Sidebar = ({
 
               {/* Pod Multi-select Dropdown with Sort Button */}
               <div className="relative pod-dropdown">
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                <label
+                  className={`block text-sm font-medium ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  } mb-1 flex justify-between items-center`}
+                >
                   <span>Pod Selectors</span>
                   <div className="flex items-center">
                     <button
                       className={`text-xs px-2 py-0.5 rounded ${
                         sortPods
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-700"
+                          ? theme === "dark"
+                            ? "bg-cyan-600 text-white"
+                            : "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-800 text-gray-300"
+                            : "bg-gray-200 text-gray-700"
                       }`}
                       onClick={() => setSortPods(!sortPods)}
                       title={
@@ -830,7 +948,11 @@ const Sidebar = ({
                   </div>
                 </label>
                 <div
-                  className="flex items-center justify-between p-2 border rounded bg-white cursor-pointer"
+                  className={`flex items-center justify-between p-2 border rounded ${
+                    theme === "dark"
+                      ? "cyberpunk-input cursor-pointer"
+                      : "bg-white cursor-pointer"
+                  }`}
                   onClick={() => setPodDropdownOpen(!podDropdownOpen)}
                 >
                   <span className="text-sm truncate">
@@ -839,7 +961,7 @@ const Sidebar = ({
                       : "All Pods"}
                   </span>
                   <svg
-                    className="h-4 w-4 text-gray-500"
+                    className={`h-4 w-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -853,9 +975,19 @@ const Sidebar = ({
                   </svg>
                 </div>
                 {podDropdownOpen && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+                  <div
+                    className={`absolute z-10 mt-1 w-full ${
+                      theme === "dark"
+                        ? "bg-gray-900 border border-cyan-800"
+                        : "bg-white border"
+                    } rounded shadow-lg max-h-60 overflow-auto`}
+                  >
                     {availablePods.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500">
+                      <div
+                        className={`p-2 text-sm ${
+                          theme === "dark" ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
                         No pods available
                       </div>
                     ) : (
@@ -867,7 +999,11 @@ const Sidebar = ({
                         ).map((pod) => (
                           <div
                             key={pod}
-                            className="flex items-center p-2 hover:bg-gray-100"
+                            className={`flex items-center p-2 ${
+                              theme === "dark"
+                                ? "hover:bg-gray-800"
+                                : "hover:bg-gray-100"
+                            }`}
                             onClick={(e) => {
                               e.stopPropagation();
                               togglePod(pod);
@@ -877,13 +1013,25 @@ const Sidebar = ({
                               type="checkbox"
                               checked={filters.pods.includes(pod)}
                               onChange={() => {}}
-                              className="mr-2"
+                              className={`mr-2 ${
+                                theme === "dark"
+                                  ? "text-cyan-500 focus:ring-cyan-600 border-gray-700 bg-gray-800"
+                                  : "text-blue-600 focus:ring-blue-500 border-gray-300"
+                              }`}
                             />
-                            <span className="text-sm flex items-center">
+                            <span
+                              className={`text-sm flex items-center ${
+                                theme === "dark" ? "text-gray-300" : ""
+                              }`}
+                            >
                               {pod}
                               {combinedPods.has(pod) && (
                                 <span
-                                  className="ml-1 text-xs px-1 bg-purple-100 text-purple-800 rounded"
+                                  className={`ml-1 text-xs px-1 ${
+                                    theme === "dark"
+                                      ? "bg-purple-900 text-purple-300"
+                                      : "bg-purple-100 text-purple-800"
+                                  } rounded`}
                                   title="Used in combined selectors"
                                 >
                                   combined
@@ -900,7 +1048,11 @@ const Sidebar = ({
 
               {/* Label Text Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  className={`block text-sm font-medium ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  } mb-1`}
+                >
                   Label Search
                 </label>
                 <input
@@ -908,12 +1060,20 @@ const Sidebar = ({
                   value={filters.labels}
                   onChange={handleLabelFilterChange}
                   placeholder="Filter by label key or value"
-                  className="p-2 block w-full rounded border shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className={`p-2 block w-full rounded border shadow-sm ${
+                    theme === "dark"
+                      ? "cyberpunk-input"
+                      : "focus:border-blue-500 focus:ring-blue-500"
+                  } text-sm`}
                 />
               </div>
             </div>
 
-            <div className="mt-3 text-xs text-gray-500">
+            <div
+              className={`mt-3 text-xs ${
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}
+            >
               {localFilteredPolicies.length} of {policies.length} policies shown
             </div>
           </div>
@@ -930,8 +1090,12 @@ const Sidebar = ({
                 <button
                   className={`text-xs px-2 py-0.5 rounded ${
                     sortPolicies
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200 text-gray-700"
+                      ? theme === "dark"
+                        ? "bg-cyan-600 text-white"
+                        : "bg-blue-500 text-white"
+                      : theme === "dark"
+                        ? "bg-gray-800 text-gray-300"
+                        : "bg-gray-200 text-gray-700"
                   }`}
                   onClick={() => setSortPolicies(!sortPolicies)}
                   title={
@@ -944,17 +1108,27 @@ const Sidebar = ({
             </div>
 
             {localFilteredPolicies.length === 0 ? (
-              <p className="text-sm text-gray-600">
+              <p
+                className={`text-sm ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}
+              >
                 {policies.length === 0
                   ? "No policies loaded"
                   : "No policies match your filters"}
               </p>
             ) : (
               <div
-                className="flex-1 overflow-auto border rounded bg-white"
+                className={`flex-1 overflow-auto border rounded ${
+                  theme === "dark" ? "bg-gray-900 border-cyan-900" : "bg-white"
+                }`}
                 style={{ minHeight: 0 }}
               >
-                <ul className="divide-y divide-gray-200">
+                <ul
+                  className={`divide-y ${
+                    theme === "dark" ? "divide-gray-800" : "divide-gray-200"
+                  }`}
+                >
                   {/* Apply sorting conditionally */}
                   {(sortPolicies
                     ? [...localFilteredPolicies].sort((a, b) =>
@@ -962,32 +1136,57 @@ const Sidebar = ({
                       )
                     : localFilteredPolicies
                   ).map((policy, index) => (
-                    <li key={index} className="p-2 hover:bg-gray-50">
+                    <li
+                      key={index}
+                      className={`p-2 ${
+                        theme === "dark"
+                          ? "hover:bg-gray-800"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
                       <div className="flex justify-between items-center">
                         <div className="flex-1 min-w-0">
                           <div
-                            className="font-medium text-sm truncate"
+                            className={`font-medium text-sm truncate ${
+                              theme === "dark" ? "text-gray-200" : ""
+                            }`}
                             title={policy.name}
                           >
                             {policy.name}
                           </div>
-                          <div className="text-xs text-gray-600 truncate">
+                          <div
+                            className={`text-xs ${
+                              theme === "dark"
+                                ? "text-gray-400"
+                                : "text-gray-600"
+                            } truncate`}
+                          >
                             {policy.namespace}
                           </div>
                         </div>
                         <button
-                          className="text-blue-500 hover:text-blue-700 text-xs px-2 py-1 bg-blue-50 rounded flex-shrink-0 ml-2"
+                          className={`${
+                            theme === "dark"
+                              ? "text-cyan-400 hover:text-cyan-300 bg-gray-800 hover:bg-gray-700"
+                              : "text-blue-500 hover:text-blue-700 bg-blue-50"
+                          } text-xs px-2 py-1 rounded flex-shrink-0 ml-2`}
                           onClick={() => setShowPolicyDetails(policy)}
                         >
                           Details
                         </button>
                       </div>
-                      <div className="text-xs text-gray-600">
+                      <div
+                        className={`text-xs ${
+                          theme === "dark" ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
                         {policy.policyTypes && policy.policyTypes.join(", ")}
                       </div>
                       {policy.podSelectorLabels && (
                         <div
-                          className="text-xs text-gray-600 truncate"
+                          className={`text-xs ${
+                            theme === "dark" ? "text-gray-400" : "text-gray-600"
+                          } truncate`}
                           title={policy.podSelectorLabels}
                         >
                           Labels: {policy.podSelectorLabels}
@@ -1003,7 +1202,11 @@ const Sidebar = ({
       </div>
 
       {/* Tips - Always visible at bottom */}
-      <div className="mt-2 text-xs text-gray-600 flex-shrink-0">
+      <div
+        className={`mt-2 text-xs ${
+          theme === "dark" ? "text-gray-400" : "text-gray-600"
+        } flex-shrink-0`}
+      >
         <p>Tip: Hover over nodes for details, drag to rearrange</p>
       </div>
     </div>

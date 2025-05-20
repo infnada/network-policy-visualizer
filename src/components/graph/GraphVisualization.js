@@ -23,7 +23,11 @@ import NodeCountDisplay from "./NodeCountDisplay"; // Import the new component
 /**
  * Main component for rendering Network Policy visualization
  */
-const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
+const GraphVisualization = ({
+  graphData,
+  deduplicateNodes = true,
+  theme = "light",
+}) => {
   const svgRef = useRef(null);
   const graphContainerRef = useRef(null);
   const [visualizationType, setVisualizationType] = useState("enhanced"); // 'enhanced' or 'classic'
@@ -44,13 +48,22 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height]);
 
+    // Apply theme-specific background color
+    if (theme === "dark") {
+      svg.style("background-color", "#0a0e17");
+    }
+
     // Create a tooltip with improved formatting and positioning
     const tooltip = d3
       .select(graphContainerRef.current)
       .append("div")
       .attr(
         "class",
-        "absolute hidden bg-white border border-gray-300 text-gray-800 p-3 rounded-md text-sm max-w-sm shadow-lg",
+        `absolute hidden ${
+          theme === "dark"
+            ? "graph-tooltip"
+            : "bg-white border border-gray-300 text-gray-800"
+        } p-3 rounded-md text-sm max-w-sm shadow-lg`,
       )
       .style("pointer-events", "none")
       .style("white-space", "pre-wrap")
@@ -105,7 +118,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
         .data(graphData.links)
         .join("path")
         .attr("fill", "none")
-        .attr("stroke", (d) => getLinkColor(d))
+        .attr("stroke", (d) => getLinkColor(d, theme))
         .attr("stroke-opacity", (d) => getLinkOpacity(d))
         .attr("stroke-width", (d) => getLinkWidth(d))
         .attr("stroke-dasharray", (d) => (d.crossPolicy ? "5,3" : null))
@@ -128,11 +141,19 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
         .append("path")
         .attr("d", "M0,-5L10,0L0,5")
         .attr("fill", (d) => {
-          if (d === "ingress") return "#ff6666";
-          if (d === "egress") return "#66ff66";
-          if (d === "ingress-cross") return "#ff3366";
-          if (d === "egress-cross") return "#33ff66";
-          return "#aaaaaa";
+          if (theme === "dark") {
+            if (d === "ingress") return "#f43f5e";
+            if (d === "egress") return "#10b981";
+            if (d === "ingress-cross") return "#e11d48";
+            if (d === "egress-cross") return "#059669";
+            return "#64748b";
+          } else {
+            if (d === "ingress") return "#ff6666";
+            if (d === "egress") return "#66ff66";
+            if (d === "ingress-cross") return "#ff3366";
+            if (d === "egress-cross") return "#33ff66";
+            return "#aaaaaa";
+          }
         });
 
       // Apply the markers to the paths
@@ -157,7 +178,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
       // Add link lines
       const linkLine = link
         .append("line")
-        .attr("stroke", (d) => getLinkColor(d))
+        .attr("stroke", (d) => getLinkColor(d, theme))
         .attr("stroke-opacity", (d) => getLinkOpacity(d))
         .attr("stroke-width", (d) => getLinkWidth(d))
         .attr("stroke-dasharray", (d) => (d.crossPolicy ? "5,3" : null));
@@ -166,7 +187,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
       link
         .append("polygon")
         .attr("points", "0,-3 6,0 0,3")
-        .attr("fill", (d) => getLinkColor(d));
+        .attr("fill", (d) => getLinkColor(d, theme));
     }
 
     // Create node drag behavior with update handler
@@ -215,8 +236,8 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
       const nodeG = d3.select(nodeElement);
       const isMultiPolicy = d.policies && d.policies.length > 1;
 
-      // Use the improved node renderer
-      createImprovedNode(d, nodeG, isMultiPolicy);
+      // Use the improved node renderer with theme
+      createImprovedNode(d, nodeG, isMultiPolicy, theme);
     });
 
     // Add namespace labels (enhanced view only)
@@ -238,8 +259,8 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
             .attr("text-anchor", "middle")
             .attr("font-size", "14px")
             .attr("font-weight", "bold")
-            .attr("fill", "#333333")
-            .attr("stroke", "#ffffff")
+            .attr("fill", theme === "dark" ? "#94a3b8" : "#333333")
+            .attr("stroke", theme === "dark" ? "#0f172a" : "#ffffff")
             .attr("stroke-width", 0.5)
             .attr("paint-order", "stroke")
             .text(`Namespace: ${namespace}`);
@@ -255,7 +276,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
           // Highlight the node
           d3.select(this)
             .select("rect")
-            .attr("stroke", "#ff3366")
+            .attr("stroke", theme === "dark" ? "#06b6d4" : "#ff3366")
             .attr("stroke-width", 3);
 
           // Find all links connected to this node
@@ -301,7 +322,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
 
           // Show node details in tooltip near the node
           tooltip
-            .html(getNodeTooltipContent(d))
+            .html(getNodeTooltipContent(d, theme))
             .style(
               "left",
               nodePosition.right - containerPosition.left + 5 + "px",
@@ -315,7 +336,13 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
             .selectAll("rect")
             .attr("stroke", (d) => {
               const isMulti = d.policies && d.policies.length > 1;
-              return isMulti ? "#ff9900" : "#666666";
+              return isMulti
+                ? theme === "dark"
+                  ? "#f59e0b"
+                  : "#ff9900"
+                : theme === "dark"
+                  ? "#4b5563"
+                  : "#666666";
             })
             .attr("stroke-width", (d) => {
               const isMulti = d.policies && d.policies.length > 1;
@@ -345,10 +372,16 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
             .selectAll("rect")
             .attr("stroke", (n) => {
               return n.id === d.source.id || n.id === d.target.id
-                ? "#ff3366"
+                ? theme === "dark"
+                  ? "#06b6d4"
+                  : "#ff3366"
                 : n.policies && n.policies.length > 1
-                  ? "#ff9900"
-                  : "#666666";
+                  ? theme === "dark"
+                    ? "#f59e0b"
+                    : "#ff9900"
+                  : theme === "dark"
+                    ? "#4b5563"
+                    : "#666666";
             })
             .attr("stroke-width", (n) => {
               return n.id === d.source.id || n.id === d.target.id
@@ -391,14 +424,14 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
               (sourceBounds.top + targetBounds.top) / 2 - containerPosition.top;
 
             tooltip
-              .html(getLinkTooltipContent(d, getPortsText))
+              .html(getLinkTooltipContent(d, getPortsText, theme))
               .style("left", midX + 10 + "px")
               .style("top", midY - 10 + "px")
               .classed("hidden", false);
           } else {
             // Fallback to cursor position
             tooltip
-              .html(getLinkTooltipContent(d, getPortsText))
+              .html(getLinkTooltipContent(d, getPortsText, theme))
               .style("left", event.pageX + 10 + "px")
               .style("top", event.pageY - 10 + "px")
               .classed("hidden", false);
@@ -415,7 +448,13 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
             .selectAll("rect")
             .attr("stroke", (d) => {
               const isMulti = d.policies && d.policies.length > 1;
-              return isMulti ? "#ff9900" : "#666666";
+              return isMulti
+                ? theme === "dark"
+                  ? "#f59e0b"
+                  : "#ff9900"
+                : theme === "dark"
+                  ? "#4b5563"
+                  : "#666666";
             })
             .attr("stroke-width", (d) => {
               const isMulti = d.policies && d.policies.length > 1;
@@ -433,7 +472,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
           // Highlight the node
           d3.select(this)
             .select("rect")
-            .attr("stroke", "#ff3366")
+            .attr("stroke", theme === "dark" ? "#06b6d4" : "#ff3366")
             .attr("stroke-width", 3);
 
           // Find connected links for the classic view
@@ -457,7 +496,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
 
           // Show node details in tooltip near the node
           tooltip
-            .html(getNodeTooltipContent(d))
+            .html(getNodeTooltipContent(d, theme))
             .style(
               "left",
               nodePosition.right - containerPosition.left + 5 + "px",
@@ -472,7 +511,16 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
 
           d3.select(this)
             .select("rect")
-            .attr("stroke", isMultiPolicy ? "#ff9900" : "#666666")
+            .attr(
+              "stroke",
+              isMultiPolicy
+                ? theme === "dark"
+                  ? "#f59e0b"
+                  : "#ff9900"
+                : theme === "dark"
+                  ? "#4b5563"
+                  : "#666666",
+            )
             .attr("stroke-width", isMultiPolicy ? 2 : 1);
 
           // Restore link appearance differently based on view
@@ -524,14 +572,14 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
                 containerPosition.top;
 
               tooltip
-                .html(getLinkTooltipContent(d, getPortsText))
+                .html(getLinkTooltipContent(d, getPortsText, theme))
                 .style("left", midX + 10 + "px")
                 .style("top", midY - 10 + "px")
                 .classed("hidden", false);
             } else {
               // Fallback to cursor position
               tooltip
-                .html(getLinkTooltipContent(d, getPortsText))
+                .html(getLinkTooltipContent(d, getPortsText, theme))
                 .style("left", event.pageX + 10 + "px")
                 .style("top", event.pageY - 10 + "px")
                 .classed("hidden", false);
@@ -582,8 +630,8 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
           .attr("text-anchor", "middle")
           .attr("font-size", "14px")
           .attr("font-weight", "bold")
-          .attr("fill", "#333333")
-          .attr("stroke", "#ffffff")
+          .attr("fill", theme === "dark" ? "#94a3b8" : "#333333")
+          .attr("stroke", theme === "dark" ? "#0f172a" : "#ffffff")
           .attr("stroke-width", 0.5)
           .attr("paint-order", "stroke")
           .text(([namespace]) => `Namespace: ${namespace}`);
@@ -649,7 +697,7 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
     if (graphData.nodes.length > 0) {
       renderGraph();
     }
-  }, [graphData, visualizationType]);
+  }, [graphData, visualizationType, theme]);
 
   // Update graph on window resize
   useEffect(() => {
@@ -661,26 +709,31 @@ const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [graphData, visualizationType]);
+  }, [graphData, visualizationType, theme]);
 
   return (
-    <div className="flex-1 relative" ref={graphContainerRef}>
+    <div
+      className={`flex-1 relative ${theme === "dark" ? "bg-gray-900" : ""}`}
+      ref={graphContainerRef}
+    >
       {graphData.nodes.length > 0 ? (
         <>
           <GraphControlPanel
             visualizationType={visualizationType}
             setVisualizationType={setVisualizationType}
             resetLayout={renderGraph}
+            theme={theme}
           />
-          <InfoPanel visualizationType={visualizationType} />
+          <InfoPanel visualizationType={visualizationType} theme={theme} />
           <NodeCountDisplay
             graphData={graphData}
             deduplicateNodes={deduplicateNodes}
+            theme={theme}
           />
           <svg ref={svgRef} className="w-full h-full"></svg>
         </>
       ) : (
-        <EmptyState />
+        <EmptyState theme={theme} />
       )}
     </div>
   );

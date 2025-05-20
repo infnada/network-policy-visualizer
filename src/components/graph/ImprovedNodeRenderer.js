@@ -98,15 +98,20 @@ const extractPodLabel = (podSelector) => {
 };
 
 /**
- * Improved node renderer for D3 integration that creates a better visual structure
+ * Improved node renderer for D3 integration that creates a better visual structure with theme support
  *
- * @param {Object} props - Component properties
- * @param {Object} props.node - The node data object
- * @param {Function} props.d3 - The D3 instance for creating SVG elements
- * @param {Object} props.container - The D3 selection for the node container
+ * @param {Object} node - The node data object
+ * @param {D3Selection} container - The D3 selection for the node container
+ * @param {Boolean} isMultiPolicy - Whether the node represents multiple policies
+ * @param {String} theme - Current theme ('light' or 'dark')
  * @returns {void} - Renders the node directly using D3
  */
-export const createImprovedNode = (node, container, isMultiPolicy) => {
+export const createImprovedNode = (
+  node,
+  container,
+  isMultiPolicy,
+  theme = "light",
+) => {
   // Create group for the node
   const nodeG = container;
 
@@ -124,33 +129,41 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
     .attr("y", -boxHeight / 2)
     .attr("rx", 5)
     .attr("ry", 5)
-    .attr("fill", "#ffffff")
-    .attr("stroke", isMultiPolicy ? "#ff9900" : "#666666")
+    .attr("fill", theme === "dark" ? "#1a2235" : "#ffffff")
+    .attr(
+      "stroke",
+      isMultiPolicy
+        ? theme === "dark"
+          ? "#f59e0b"
+          : "#ff9900"
+        : theme === "dark"
+          ? "#4b5563"
+          : "#666666",
+    )
     .attr("stroke-width", isMultiPolicy ? 2 : 1)
     .attr("stroke-opacity", 0.8)
-    .attr("fill-opacity", 0.9);
+    .attr("fill-opacity", theme === "dark" ? 0.8 : 0.9);
 
   // Determine icon type and color based on node type
   let iconType = "circle";
-  let iconColor = "#66aaff"; // Default pod color
+  let iconColor = theme === "dark" ? "var(--node-pod)" : "#66aaff"; // Default pod color
   let extractedNamespace = null;
 
   if (node.type === "pod") {
     iconType = "circle";
-    iconColor = "#66aaff";
+    iconColor = theme === "dark" ? "var(--node-pod)" : "#66aaff";
     if (node.details && node.details.namespace) {
       extractedNamespace = node.details.namespace;
     }
   } else if (node.type === "namespace") {
     iconType = "rect";
-    iconColor = "#44cc44";
+    iconColor = theme === "dark" ? "var(--node-namespace)" : "#44cc44";
   } else if (node.type === "ipBlock") {
     iconType = "triangle";
-    iconColor = "#ffaa44";
+    iconColor = theme === "dark" ? "var(--node-ipblock)" : "#ffaa44";
   } else if (node.type === "combined") {
-    // For combined namespace+pod selectors, use pod style but indicate the namespace
     iconType = "circle";
-    iconColor = "#9966cc"; // Keep a distinctive color
+    iconColor = theme === "dark" ? "var(--node-combined)" : "#9966cc";
 
     // Extract namespace if available
     if (node.details && node.details.namespace) {
@@ -158,7 +171,7 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
     }
   } else if (node.type === "anywhere") {
     iconType = "circle";
-    iconColor = "#dddddd";
+    iconColor = theme === "dark" ? "#374151" : "#dddddd";
   }
 
   // Add appropriate icon
@@ -169,7 +182,7 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
       .attr("cx", 0)
       .attr("cy", -10)
       .attr("fill", iconColor)
-      .attr("stroke", "#333333")
+      .attr("stroke", theme === "dark" ? "#111827" : "#333333")
       .attr("stroke-width", 1);
   } else if (iconType === "rect") {
     nodeG
@@ -179,21 +192,21 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
       .attr("x", -9)
       .attr("y", -19)
       .attr("fill", iconColor)
-      .attr("stroke", "#333333")
+      .attr("stroke", theme === "dark" ? "#111827" : "#333333")
       .attr("stroke-width", 1);
   } else if (iconType === "triangle") {
     nodeG
       .append("polygon")
       .attr("points", "0,-20 10,-5 -10,-5")
       .attr("fill", iconColor)
-      .attr("stroke", "#333333")
+      .attr("stroke", theme === "dark" ? "#111827" : "#333333")
       .attr("stroke-width", 1);
   } else if (iconType === "diamond") {
     nodeG
       .append("polygon")
       .attr("points", "0,-20 10,-10 0,0 -10,-10")
       .attr("fill", iconColor)
-      .attr("stroke", "#333333")
+      .attr("stroke", theme === "dark" ? "#111827" : "#333333")
       .attr("stroke-width", 1);
   }
 
@@ -204,8 +217,8 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
       .attr("r", 7)
       .attr("cx", 10)
       .attr("cy", -15)
-      .attr("fill", "#ff9900")
-      .attr("stroke", "#ffffff")
+      .attr("fill", theme === "dark" ? "#f59e0b" : "#ff9900")
+      .attr("stroke", theme === "dark" ? "#0f172a" : "#ffffff")
       .attr("stroke-width", 1);
 
     nodeG
@@ -215,7 +228,7 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
       .attr("text-anchor", "middle")
       .attr("font-size", "9px")
       .attr("font-weight", "bold")
-      .attr("fill", "#ffffff")
+      .attr("fill", theme === "dark" ? "#0f172a" : "#ffffff")
       .text(node.policies.length);
   }
 
@@ -228,7 +241,7 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
     .attr("dominant-baseline", "middle")
     .attr("font-size", "10px")
     .attr("font-weight", "bold")
-    .attr("fill", "#333333")
+    .attr("fill", theme === "dark" ? "#e2f3f5" : "#333333")
     .text(() => {
       // For combined nodes with pod selectors, show the pod labels
       if (node.type === "combined" && node.details && node.details.pod) {
@@ -259,7 +272,7 @@ export const createImprovedNode = (node, container, isMultiPolicy) => {
       .attr("dominant-baseline", "middle")
       .attr("font-size", "8px")
       .attr("font-style", "italic")
-      .attr("fill", "#666666")
+      .attr("fill", theme === "dark" ? "#94a3b8" : "#666666")
       .text(
         `(${
           extractedNamespace ||

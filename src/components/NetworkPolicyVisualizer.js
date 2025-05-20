@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import PolicyDetails from "./PolicyDetails";
 import GraphVisualization from "./graph/GraphVisualization";
 import Sidebar from "./Sidebar";
+import ThemeToggle from "./ThemeToggle";
+import CyberpunkTheme from "./CyberpunkTheme";
 import { parseYaml, parseNetworkPolicy } from "../utils/parsers";
 // Import the enhanced buildGraphData function
 import { buildGraphData } from "../utils/enhancedParsers";
@@ -18,6 +20,8 @@ const NetworkPolicyVisualizer = () => {
   const [directionFilter, setDirectionFilter] = useState("all");
   // Add state for node deduplication
   const [deduplicateNodes, setDeduplicateNodes] = useState(true);
+  // Add state for theme
+  const [theme, setTheme] = useState("light");
 
   const readFileContent = (file) => {
     return new Promise((resolve, reject) => {
@@ -311,9 +315,21 @@ spec:
     setDeduplicateNodes(deduplicate);
   };
 
+  // Apply theme class to body
+  useEffect(() => {
+    document.body.className = theme === "dark" ? "theme-dark" : "theme-light";
+  }, [theme]);
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      <header className="bg-blue-600 text-white p-4">
+    <div
+      className={`flex flex-col h-screen themed-bg-primary ${theme === "dark" ? "theme-dark" : "theme-light"}`}
+    >
+      {/* Apply the CyberpunkTheme component */}
+      <CyberpunkTheme isActive={theme === "dark"} />
+
+      <header
+        className={`${theme === "dark" ? "cyberpunk-header" : "bg-blue-600"} text-white p-4`}
+      >
         <h1 className="text-2xl font-bold">
           Kubernetes NetworkPolicy Visualizer
         </h1>
@@ -335,18 +351,24 @@ spec:
           directionFilter={directionFilter}
           deduplicateNodes={deduplicateNodes}
           onDeduplicateNodesChange={handleDeduplicateNodesChange}
+          theme={theme}
         />
 
         <GraphVisualization
           graphData={graphData}
           deduplicateNodes={deduplicateNodes}
+          theme={theme}
         />
+
+        {/* Theme toggle button */}
+        <ThemeToggle theme={theme} setTheme={setTheme} />
       </div>
 
       {showPolicyDetails && (
         <PolicyDetails
           policy={showPolicyDetails}
           onClose={() => setShowPolicyDetails(null)}
+          theme={theme}
         />
       )}
     </div>

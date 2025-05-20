@@ -1,4 +1,4 @@
-// src/components/graph/graphStyleHelpers.js - Updated tooltip function
+// src/components/graph/graphStyleHelpers.js - Updated with theme support
 
 /**
  * Extracts namespace name from selector for tooltip display
@@ -141,17 +141,28 @@ export const createLinkPath = (link, visualizationType) => {
 };
 
 /**
- * Gets color for a link based on its properties
+ * Gets color for a link based on its properties and theme
  * @param {Object} link - The link data
+ * @param {String} theme - Current theme ('light' or 'dark')
  * @returns {String} - CSS color
  */
-export const getLinkColor = (link) => {
-  if (link.crossPolicy) {
-    return link.direction === "ingress" ? "#ff3366" : "#33ff66";
+export const getLinkColor = (link, theme = "light") => {
+  if (theme === "dark") {
+    if (link.crossPolicy) {
+      return link.direction === "ingress" ? "#e11d48" : "#059669"; // Red and green for dark theme
+    }
+    if (link.direction === "ingress") return "#f43f5e"; // Lighter red for dark theme
+    if (link.direction === "egress") return "#10b981"; // Lighter green for dark theme
+    return "#64748b"; // Gray for dark theme
+  } else {
+    // Original light theme colors
+    if (link.crossPolicy) {
+      return link.direction === "ingress" ? "#ff3366" : "#33ff66";
+    }
+    if (link.direction === "ingress") return "#ff6666";
+    if (link.direction === "egress") return "#66ff66";
+    return "#aaaaaa";
   }
-  if (link.direction === "ingress") return "#ff6666";
-  if (link.direction === "egress") return "#66ff66";
-  return "#aaaaaa";
 };
 
 /**
@@ -181,29 +192,41 @@ export const getLinkWidth = (link, isHighlighted = false) => {
 };
 
 /**
- * Gets node stroke color based on its properties
+ * Gets node stroke color based on its properties and theme
  * @param {Object} node - The node data
+ * @param {String} theme - Current theme ('light' or 'dark')
  * @returns {String} - CSS color
  */
-export const getNodeStrokeColor = (node) => {
+export const getNodeStrokeColor = (node, theme = "light") => {
   const isMultiPolicy = node.policies && node.policies.length > 1;
-  return isMultiPolicy ? "#ff9900" : "#fff";
+
+  if (theme === "dark") {
+    return isMultiPolicy ? "#f59e0b" : "#4b5563"; // Amber for multi-policy, gray for normal
+  } else {
+    return isMultiPolicy ? "#ff9900" : "#666666"; // Original colors
+  }
 };
 
 /**
- * Prepares tooltip content for a node with improved namespace extraction
+ * Prepares tooltip content for a node with improved namespace extraction and theme support
  * @param {Object} node - The node data
+ * @param {String} theme - Current theme ('light' or 'dark')
  * @returns {String} - HTML content for tooltip
  */
-export const getNodeTooltipContent = (node) => {
-  let tooltipContent = `<div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">${node.label}</div>`;
+export const getNodeTooltipContent = (node, theme = "light") => {
+  const textColor = theme === "dark" ? "#e2f3f5" : "#333333";
+  const labelColor = theme === "dark" ? "#06b6d4" : "#666666";
+  const sectionBgColor = theme === "dark" ? "#1e293b" : "#f3f4f6";
+  const borderColor = theme === "dark" ? "#1e40af" : "#e5e7eb";
+
+  let tooltipContent = `<div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px solid ${borderColor}; padding-bottom: 5px; color: ${theme === "dark" ? "#06b6d4" : "#2563eb"};">${node.label}</div>`;
 
   // Add node type
-  tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Type:</span> ${node.type}</div>`;
+  tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">Type:</span> <span style="color: ${textColor};">${node.type}</span></div>`;
 
   // Add namespace for pod nodes
   if (node.type === "pod" && node.details && node.details.namespace) {
-    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Namespace:</span> ${node.details.namespace}</div>`;
+    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">Namespace:</span> <span style="color: ${textColor};">${node.details.namespace}</span></div>`;
   }
 
   // Add selector details
@@ -211,44 +234,44 @@ export const getNodeTooltipContent = (node) => {
     let selectorText = "";
 
     if (node.details.podSelector.matchLabels) {
-      selectorText += `<div style="margin-left: 10px; margin-bottom: 5px;"><u>Match Labels:</u><br/>`;
+      selectorText += `<div style="margin-left: 10px; margin-bottom: 5px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;"><span style="text-decoration: underline; color: ${labelColor};">Match Labels:</span><br/>`;
       selectorText += Object.entries(node.details.podSelector.matchLabels)
         .map(
           ([key, value]) =>
-            `<div style="margin-left: 15px;">${key}: ${value}</div>`,
+            `<div style="margin-left: 15px; color: ${textColor};">${key}: ${value}</div>`,
         )
         .join("");
       selectorText += `</div>`;
     }
 
     if (node.details.podSelector.matchExpressions) {
-      selectorText += `<div style="margin-left: 10px;"><u>Match Expressions:</u><br/>`;
+      selectorText += `<div style="margin-left: 10px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;"><span style="text-decoration: underline; color: ${labelColor};">Match Expressions:</span><br/>`;
       selectorText += node.details.podSelector.matchExpressions
         .map(
           (expr) =>
-            `<div style="margin-left: 15px;">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
+            `<div style="margin-left: 15px; color: ${textColor};">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
         )
         .join("");
       selectorText += `</div>`;
     }
 
     if (selectorText) {
-      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Selector:</span><br/>${selectorText}</div>`;
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">Selector:</span><br/>${selectorText}</div>`;
     }
   }
 
   // Add CIDR for IP blocks
   if (node.type === "ipBlock" && node.details) {
-    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">CIDR:</span> ${node.details.cidr || "Unknown"}</div>`;
+    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">CIDR:</span> <span style="color: ${textColor};">${node.details.cidr || "Unknown"}</span></div>`;
 
     if (node.details.except && node.details.except.length > 0) {
-      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Except:</span> ${node.details.except.join(", ")}</div>`;
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">Except:</span> <span style="color: ${textColor};">${node.details.except.join(", ")}</span></div>`;
     }
   }
 
   // Improved combined selector info
   if (node.type === "combined") {
-    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Combined Namespace+Pod Selector</span></div>`;
+    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${theme === "dark" ? "#8b5cf6" : "#9333ea"};">Combined Namespace+Pod Selector</span></div>`;
 
     // Extract namespace information with improved method
     let extractedNamespace = null;
@@ -256,28 +279,28 @@ export const getNodeTooltipContent = (node) => {
       extractedNamespace = extractNamespaceForTooltip(node.details.namespace);
 
       if (extractedNamespace) {
-        tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600;">Namespace:</span> ${extractedNamespace}</div>`;
+        tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600; color: ${labelColor};">Namespace:</span> <span style="color: ${textColor};">${extractedNamespace}</span></div>`;
       }
 
       // Show namespace selector details
-      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Namespace Selector:</span><br/>`;
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">Namespace Selector:</span><br/>`;
       if (node.details.namespace.matchLabels) {
-        tooltipContent += `<div style="margin-left: 10px; margin-bottom: 5px;"><u>Match Labels:</u><br/>`;
+        tooltipContent += `<div style="margin-left: 10px; margin-bottom: 5px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;"><span style="text-decoration: underline; color: ${labelColor};">Match Labels:</span><br/>`;
         tooltipContent += Object.entries(node.details.namespace.matchLabels)
           .map(
             ([key, value]) =>
-              `<div style="margin-left: 15px;">${key}: ${value}</div>`,
+              `<div style="margin-left: 15px; color: ${textColor};">${key}: ${value}</div>`,
           )
           .join("");
         tooltipContent += `</div>`;
       }
 
       if (node.details.namespace.matchExpressions) {
-        tooltipContent += `<div style="margin-left: 10px;"><u>Match Expressions:</u><br/>`;
+        tooltipContent += `<div style="margin-left: 10px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;"><span style="text-decoration: underline; color: ${labelColor};">Match Expressions:</span><br/>`;
         tooltipContent += node.details.namespace.matchExpressions
           .map(
             (expr) =>
-              `<div style="margin-left: 15px;">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
+              `<div style="margin-left: 15px; color: ${textColor};">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
           )
           .join("");
         tooltipContent += `</div>`;
@@ -287,24 +310,24 @@ export const getNodeTooltipContent = (node) => {
 
     // Show pod selector details
     if (node.details && node.details.pod) {
-      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Pod Selector:</span><br/>`;
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600; color: ${labelColor};">Pod Selector:</span><br/>`;
       if (node.details.pod.matchLabels) {
-        tooltipContent += `<div style="margin-left: 10px; margin-bottom: 5px;"><u>Match Labels:</u><br/>`;
+        tooltipContent += `<div style="margin-left: 10px; margin-bottom: 5px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;"><span style="text-decoration: underline; color: ${labelColor};">Match Labels:</span><br/>`;
         tooltipContent += Object.entries(node.details.pod.matchLabels)
           .map(
             ([key, value]) =>
-              `<div style="margin-left: 15px;">${key}: ${value}</div>`,
+              `<div style="margin-left: 15px; color: ${textColor};">${key}: ${value}</div>`,
           )
           .join("");
         tooltipContent += `</div>`;
       }
 
       if (node.details.pod.matchExpressions) {
-        tooltipContent += `<div style="margin-left: 10px;"><u>Match Expressions:</u><br/>`;
+        tooltipContent += `<div style="margin-left: 10px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;"><span style="text-decoration: underline; color: ${labelColor};">Match Expressions:</span><br/>`;
         tooltipContent += node.details.pod.matchExpressions
           .map(
             (expr) =>
-              `<div style="margin-left: 15px;">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
+              `<div style="margin-left: 15px; color: ${textColor};">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
           )
           .join("");
         tooltipContent += `</div>`;
@@ -315,9 +338,9 @@ export const getNodeTooltipContent = (node) => {
 
   // Add policies that reference this node
   if (node.policies && node.policies.length > 0) {
-    tooltipContent += `<div style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px;">
-      <span style="font-weight: 600;">Referenced by policies:</span><br/>
-      ${node.policies.map((p) => `<div style="margin-left: 10px;">• ${p}</div>`).join("")}
+    tooltipContent += `<div style="margin-top: 10px; border-top: 1px solid ${borderColor}; padding-top: 5px;">
+      <span style="font-weight: 600; color: ${labelColor};">Referenced by policies:</span><br/>
+      ${node.policies.map((p) => `<div style="margin-left: 10px; color: ${textColor};">• ${p}</div>`).join("")}
     </div>`;
   }
 
@@ -328,16 +351,32 @@ export const getNodeTooltipContent = (node) => {
  * Prepares tooltip content for a link, supporting multiple ports per policy
  * @param {Object} link - The link data
  * @param {Function} getPortsText - Function to format ports
+ * @param {String} theme - Current theme ('light' or 'dark')
  * @returns {String} - HTML content for tooltip
  */
-export const getLinkTooltipContent = (link, getPortsText) => {
-  let tooltipContent = `<div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+export const getLinkTooltipContent = (link, getPortsText, theme = "light") => {
+  const textColor = theme === "dark" ? "#e2f3f5" : "#333333";
+  const labelColor = theme === "dark" ? "#06b6d4" : "#666666";
+  const borderColor = theme === "dark" ? "#1e40af" : "#e5e7eb";
+  const sectionBgColor = theme === "dark" ? "#1e293b" : "#f3f4f6";
+
+  let tooltipContent = `<div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px solid ${borderColor}; padding-bottom: 5px; color: ${theme === "dark" ? "#06b6d4" : "#2563eb"};">
     ${link.policy}
   </div>`;
 
+  // Direction with theme-specific colors
+  const directionColor =
+    link.direction === "ingress"
+      ? theme === "dark"
+        ? "#f43f5e"
+        : "#ff3366"
+      : theme === "dark"
+        ? "#10b981"
+        : "#33cc66";
+
   tooltipContent += `<div style="margin-bottom: 8px;">
-    <span style="font-weight: 600;">Direction:</span> 
-    <span style="color: ${link.direction === "ingress" ? "#ff3366" : "#33cc66"};">
+    <span style="font-weight: 600; color: ${labelColor};">Direction:</span> 
+    <span style="color: ${directionColor}; font-weight: 500;">
       ${link.direction.charAt(0).toUpperCase() + link.direction.slice(1)}
     </span>
   </div>`;
@@ -345,11 +384,14 @@ export const getLinkTooltipContent = (link, getPortsText) => {
   // Handle different ports per policy
   if (link.detailedPorts && link.portDetails) {
     tooltipContent += `<div style="margin-bottom: 8px;">
-      <span style="font-weight: 600;">Ports by Policy:</span>
-      <div style="margin-left: 10px; margin-top: 5px;">
+      <span style="font-weight: 600; color: ${labelColor};">Ports by Policy:</span>
+      <div style="margin-left: 10px; margin-top: 5px; background-color: ${sectionBgColor}; padding: 4px; border-radius: 3px;">
         ${link.portDetails
           .split("\n")
-          .map((line) => `<div style="margin-bottom: 3px;">• ${line}</div>`)
+          .map(
+            (line) =>
+              `<div style="margin-bottom: 3px; color: ${textColor};">• ${line}</div>`,
+          )
           .join("")}
       </div>
     </div>`;
@@ -357,18 +399,18 @@ export const getLinkTooltipContent = (link, getPortsText) => {
     // Format ports for better display (single port set)
     const ports = getPortsText(link.ports);
     tooltipContent += `<div style="margin-bottom: 8px;">
-      <span style="font-weight: 600;">Ports:</span> ${ports}
+      <span style="font-weight: 600; color: ${labelColor};">Ports:</span> <span style="color: ${textColor};">${ports}</span>
     </div>`;
   }
 
   if (link.crossPolicy) {
-    tooltipContent += `<div style="margin-top: 8px; color: #ff9900; font-weight: 600;">
+    tooltipContent += `<div style="margin-top: 8px; color: ${theme === "dark" ? "#f59e0b" : "#ff9900"}; font-weight: 600; text-align: center; padding: 2px; background-color: ${theme === "dark" ? "rgba(245, 158, 11, 0.1)" : "rgba(255, 153, 0, 0.1)"}; border-radius: 3px;">
       Cross-Policy Connection
     </div>`;
   }
 
   if (link.combinedSelector) {
-    tooltipContent += `<div style="margin-top: 8px; color: #9966cc; font-weight: 600;">
+    tooltipContent += `<div style="margin-top: 8px; color: ${theme === "dark" ? "#8b5cf6" : "#9966cc"}; font-weight: 600; text-align: center; padding: 2px; background-color: ${theme === "dark" ? "rgba(139, 92, 246, 0.1)" : "rgba(153, 102, 204, 0.1)"}; border-radius: 3px;">
       Combined namespace+pod selector
     </div>`;
   }
