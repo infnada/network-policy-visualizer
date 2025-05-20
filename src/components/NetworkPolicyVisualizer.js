@@ -3,8 +3,7 @@ import PolicyDetails from "./PolicyDetails";
 import GraphVisualization from "./graph/GraphVisualization";
 import Sidebar from "./Sidebar";
 import { parseYaml, parseNetworkPolicy } from "../utils/parsers";
-// Import the enhanced buildGraphData function directly -
-// We're assuming you'll copy the function from the first artifact into your parsers.js file
+// Import the enhanced buildGraphData function
 import { buildGraphData } from "../utils/enhancedParsers";
 
 const NetworkPolicyVisualizer = () => {
@@ -15,8 +14,10 @@ const NetworkPolicyVisualizer = () => {
   const [loading, setLoading] = useState(false);
   const [pasteContent, setPasteContent] = useState("");
   const [showPolicyDetails, setShowPolicyDetails] = useState(null);
-  // Add state for direction filter - we'll get this from the Sidebar component
+  // Add state for direction filter
   const [directionFilter, setDirectionFilter] = useState("all");
+  // Add state for node deduplication
+  const [deduplicateNodes, setDeduplicateNodes] = useState(true);
 
   const readFileContent = (file) => {
     return new Promise((resolve, reject) => {
@@ -30,7 +31,8 @@ const NetworkPolicyVisualizer = () => {
   // Memoize the graph data to prevent unnecessary recalculations
   // Enhanced to apply direction filtering at the graph level
   const memoizedGraphData = useMemo(() => {
-    const baseGraphData = buildGraphData(filteredPolicies);
+    // Create graph data with deduplication based on user preference
+    const baseGraphData = buildGraphData(filteredPolicies, deduplicateNodes);
 
     // If directionFilter is "all", return the full graph
     if (directionFilter === "all") {
@@ -60,7 +62,7 @@ const NetworkPolicyVisualizer = () => {
       nodes: filteredNodes,
       links: filteredLinks,
     };
-  }, [filteredPolicies, directionFilter]);
+  }, [filteredPolicies, directionFilter, deduplicateNodes]);
 
   // Only update graph data when the memoized value changes
   useEffect(() => {
@@ -304,6 +306,11 @@ spec:
     setDirectionFilter(direction);
   };
 
+  // Function to handle node deduplication changes
+  const handleDeduplicateNodesChange = (deduplicate) => {
+    setDeduplicateNodes(deduplicate);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <header className="bg-blue-600 text-white p-4">
@@ -326,9 +333,14 @@ spec:
           setFilteredPolicies={setFilteredPolicies}
           onDirectionFilterChange={handleDirectionFilterChange}
           directionFilter={directionFilter}
+          deduplicateNodes={deduplicateNodes}
+          onDeduplicateNodesChange={handleDeduplicateNodesChange}
         />
 
-        <GraphVisualization graphData={graphData} />
+        <GraphVisualization
+          graphData={graphData}
+          deduplicateNodes={deduplicateNodes}
+        />
       </div>
 
       {showPolicyDetails && (

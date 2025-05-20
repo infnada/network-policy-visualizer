@@ -16,13 +16,14 @@ import {
   getNodeTooltipContent,
   getLinkTooltipContent,
 } from "./graphStyleHelpers";
-import NodeRenderer from "./NodeRenderer";
+import { createImprovedNode } from "./ImprovedNodeRenderer"; // Import the improved node renderer
 import { GraphControlPanel, InfoPanel, EmptyState } from "./GraphControls";
+import NodeCountDisplay from "./NodeCountDisplay"; // Import the new component
 
 /**
  * Main component for rendering Network Policy visualization
  */
-const GraphVisualization = ({ graphData }) => {
+const GraphVisualization = ({ graphData, deduplicateNodes = true }) => {
   const svgRef = useRef(null);
   const graphContainerRef = useRef(null);
   const [visualizationType, setVisualizationType] = useState("enhanced"); // 'enhanced' or 'classic'
@@ -43,16 +44,17 @@ const GraphVisualization = ({ graphData }) => {
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height]);
 
-    // Create a tooltip with improved formatting
+    // Create a tooltip with improved formatting and positioning
     const tooltip = d3
       .select(graphContainerRef.current)
       .append("div")
       .attr(
         "class",
-        "absolute hidden bg-black bg-opacity-80 text-white p-2 rounded text-sm max-w-xs",
+        "absolute hidden bg-white border border-gray-300 text-gray-800 p-3 rounded-md text-sm max-w-sm shadow-lg",
       )
       .style("pointer-events", "none")
-      .style("white-space", "pre-wrap");
+      .style("white-space", "pre-wrap")
+      .style("z-index", 1000); // Ensure tooltip is above other elements
 
     // Create container for zoom
     const container = svg.append("g");
@@ -207,127 +209,14 @@ const GraphVisualization = ({ graphData }) => {
       .join("g")
       .call(dragBehavior);
 
-    // Create node elements using the NodeRenderer
+    // Create node elements using the improved node renderer
     nodesGroup.each(function (d) {
-      // For D3 integration, we need to render the SVG elements directly
-      // Get the DOM element
       const nodeElement = this;
-
-      // Create a g element for each node
       const nodeG = d3.select(nodeElement);
-
-      // Use NodeRenderer components for consistent node rendering
-      // We need to render each part of the node manually since we're in D3 context
-
-      // 1. Render node shape based on type
       const isMultiPolicy = d.policies && d.policies.length > 1;
 
-      if (d.type === "pod") {
-        nodeG
-          .append("circle")
-          .attr("r", isMultiPolicy ? 12 : 10)
-          .attr("fill", d.color)
-          .attr("stroke", isMultiPolicy ? "#ff9900" : "#fff")
-          .attr("stroke-width", isMultiPolicy ? 2 : 1.5);
-      } else if (d.type === "namespace") {
-        nodeG
-          .append("rect")
-          .attr("width", isMultiPolicy ? 24 : 20)
-          .attr("height", isMultiPolicy ? 24 : 20)
-          .attr("x", isMultiPolicy ? -12 : -10)
-          .attr("y", isMultiPolicy ? -12 : -10)
-          .attr("fill", d.color)
-          .attr("stroke", isMultiPolicy ? "#ff9900" : "#fff")
-          .attr("stroke-width", isMultiPolicy ? 2 : 1.5);
-      } else if (d.type === "ipBlock") {
-        nodeG
-          .append("polygon")
-          .attr(
-            "points",
-            isMultiPolicy ? "0,-12 10,6 -10,6" : "0,-10 8.7,5 -8.7,5",
-          )
-          .attr("fill", d.color)
-          .attr("stroke", isMultiPolicy ? "#ff9900" : "#fff")
-          .attr("stroke-width", isMultiPolicy ? 2 : 1.5);
-      } else if (d.type === "combined") {
-        nodeG
-          .append("polygon")
-          .attr(
-            "points",
-            isMultiPolicy ? "0,-12 12,0 0,12 -12,0" : "0,-10 10,0 0,10 -10,0",
-          )
-          .attr("fill", "#9966cc")
-          .attr("stroke", isMultiPolicy ? "#ff9900" : "#fff")
-          .attr("stroke-width", isMultiPolicy ? 2 : 1.5);
-      } else {
-        nodeG
-          .append("circle")
-          .attr("r", isMultiPolicy ? 10 : 8)
-          .attr("fill", d.color)
-          .attr("stroke", isMultiPolicy ? "#ff9900" : "#fff")
-          .attr("stroke-width", isMultiPolicy ? 2 : 1.5);
-      }
-
-      // 2. Render policy count badge for multi-policy nodes
-      if (isMultiPolicy) {
-        nodeG
-          .append("circle")
-          .attr("r", 6)
-          .attr("cx", 10)
-          .attr("cy", -10)
-          .attr("fill", "#ff9900")
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 1);
-
-        nodeG
-          .append("text")
-          .attr("x", 10)
-          .attr("y", -7)
-          .attr("text-anchor", "middle")
-          .attr("font-size", "8px")
-          .attr("font-weight", "bold")
-          .attr("fill", "#ffffff")
-          .text(d.policies.length);
-      }
-
-      // 3. Add label background (for enhanced view only)
-      if (currentVisualizationType === "enhanced") {
-        nodeG
-          .append("rect")
-          .attr("x", d.type === "ipBlock" ? -15 : 12)
-          .attr("y", d.type === "ipBlock" ? 8 : -4)
-          .attr("width", 80)
-          .attr("height", 14)
-          .attr("fill", "#ffffff")
-          .attr("fill-opacity", 0.7)
-          .attr("rx", 3)
-          .attr("ry", 3);
-      }
-
-      // 4. Add node label
-      nodeG
-        .append("text")
-        .attr("x", d.type === "ipBlock" ? 0 : isMultiPolicy ? 14 : 12)
-        .attr("y", d.type === "ipBlock" ? 15 : 4)
-        .attr("text-anchor", d.type === "ipBlock" ? "middle" : "start")
-        .text(() => {
-          const maxLength = 20;
-          return d.label.length > maxLength
-            ? d.label.substring(0, maxLength) + "..."
-            : d.label;
-        })
-        .attr("font-size", "10px")
-        .attr("font-weight", "bold")
-        .attr(
-          "fill",
-          currentVisualizationType === "enhanced" ? "#000000" : "#ffffff",
-        )
-        .attr(
-          "stroke",
-          currentVisualizationType === "enhanced" ? "none" : "#ffffff",
-        )
-        .attr("stroke-width", currentVisualizationType === "enhanced" ? 0 : 0.3)
-        .attr("paint-order", "stroke");
+      // Use the improved node renderer
+      createImprovedNode(d, nodeG, isMultiPolicy);
     });
 
     // Add namespace labels (enhanced view only)
@@ -345,12 +234,12 @@ const GraphVisualization = ({ graphData }) => {
             .append("text")
             .attr("class", "namespace-label")
             .attr("x", avgX)
-            .attr("y", avgY - 30)
+            .attr("y", avgY - 55) // Position above the nodes
             .attr("text-anchor", "middle")
-            .attr("font-size", "12px")
+            .attr("font-size", "14px")
             .attr("font-weight", "bold")
-            .attr("fill", "#ffffff")
-            .attr("stroke", "#000000")
+            .attr("fill", "#333333")
+            .attr("stroke", "#ffffff")
             .attr("stroke-width", 0.5)
             .attr("paint-order", "stroke")
             .text(`Namespace: ${namespace}`);
@@ -365,7 +254,8 @@ const GraphVisualization = ({ graphData }) => {
         .on("mouseover", function (event, d) {
           // Highlight the node
           d3.select(this)
-            .select("circle, rect, polygon")
+            .select("rect")
+            .attr("stroke", "#ff3366")
             .attr("stroke-width", 3);
 
           // Find all links connected to this node
@@ -399,26 +289,39 @@ const GraphVisualization = ({ graphData }) => {
 
           // Highlight connected nodes
           nodesGroup
-            .selectAll("circle, rect, polygon")
+            .selectAll("rect")
             .attr("stroke-opacity", (n) =>
               connectedNodeIds.has(n.id) ? 1 : 0.3,
             );
 
-          // Show node details in tooltip
+          // Calculate position near the node (not cursor)
+          const nodePosition = d3.select(this).node().getBoundingClientRect();
+          const containerPosition =
+            graphContainerRef.current.getBoundingClientRect();
+
+          // Show node details in tooltip near the node
           tooltip
             .html(getNodeTooltipContent(d))
-            .style("left", event.pageX + 10 + "px")
-            .style("top", event.pageY - 10 + "px")
+            .style(
+              "left",
+              nodePosition.right - containerPosition.left + 5 + "px",
+            )
+            .style("top", nodePosition.top - containerPosition.top + "px")
             .classed("hidden", false);
         })
         .on("mouseout", function () {
           // Restore node appearance
           nodesGroup
-            .selectAll("circle, rect, polygon")
-            .attr("stroke-width", (d) =>
-              d.policies && d.policies.length > 1 ? 2 : 1.5,
-            )
-            .attr("stroke-opacity", 1);
+            .selectAll("rect")
+            .attr("stroke", (d) => {
+              const isMulti = d.policies && d.policies.length > 1;
+              return isMulti ? "#ff9900" : "#666666";
+            })
+            .attr("stroke-width", (d) => {
+              const isMulti = d.policies && d.policies.length > 1;
+              return isMulti ? 2 : 1;
+            })
+            .attr("stroke-opacity", 0.8);
 
           // Restore link appearance
           link
@@ -439,24 +342,67 @@ const GraphVisualization = ({ graphData }) => {
 
           // Highlight the connected nodes
           nodesGroup
-            .selectAll("circle, rect, polygon")
-            .attr("stroke-width", (n) =>
-              n.id === d.source.id || n.id === d.target.id
+            .selectAll("rect")
+            .attr("stroke", (n) => {
+              return n.id === d.source.id || n.id === d.target.id
+                ? "#ff3366"
+                : n.policies && n.policies.length > 1
+                  ? "#ff9900"
+                  : "#666666";
+            })
+            .attr("stroke-width", (n) => {
+              return n.id === d.source.id || n.id === d.target.id
                 ? 3
                 : n.policies && n.policies.length > 1
                   ? 2
-                  : 1.5,
-            )
+                  : 1;
+            })
             .attr("stroke-opacity", (n) =>
               n.id === d.source.id || n.id === d.target.id ? 1 : 0.3,
             );
 
-          // Show link details in tooltip
-          tooltip
-            .html(getLinkTooltipContent(d, getPortsText))
-            .style("left", event.pageX + 10 + "px")
-            .style("top", event.pageY - 10 + "px")
-            .classed("hidden", false);
+          // Position tooltip near the midpoint of the link
+          const sourceNode = d3
+            .select(
+              nodesGroup
+                .nodes()
+                .find((node) => d3.select(node).datum().id === d.source.id),
+            )
+            .node();
+
+          const targetNode = d3
+            .select(
+              nodesGroup
+                .nodes()
+                .find((node) => d3.select(node).datum().id === d.target.id),
+            )
+            .node();
+
+          if (sourceNode && targetNode) {
+            const sourceBounds = sourceNode.getBoundingClientRect();
+            const targetBounds = targetNode.getBoundingClientRect();
+            const containerPosition =
+              graphContainerRef.current.getBoundingClientRect();
+
+            const midX =
+              (sourceBounds.left + targetBounds.left) / 2 -
+              containerPosition.left;
+            const midY =
+              (sourceBounds.top + targetBounds.top) / 2 - containerPosition.top;
+
+            tooltip
+              .html(getLinkTooltipContent(d, getPortsText))
+              .style("left", midX + 10 + "px")
+              .style("top", midY - 10 + "px")
+              .classed("hidden", false);
+          } else {
+            // Fallback to cursor position
+            tooltip
+              .html(getLinkTooltipContent(d, getPortsText))
+              .style("left", event.pageX + 10 + "px")
+              .style("top", event.pageY - 10 + "px")
+              .classed("hidden", false);
+          }
         })
         .on("mouseout", function () {
           // Restore link appearance
@@ -466,11 +412,16 @@ const GraphVisualization = ({ graphData }) => {
 
           // Restore node appearance
           nodesGroup
-            .selectAll("circle, rect, polygon")
-            .attr("stroke-width", (d) =>
-              d.policies && d.policies.length > 1 ? 2 : 1.5,
-            )
-            .attr("stroke-opacity", 1);
+            .selectAll("rect")
+            .attr("stroke", (d) => {
+              const isMulti = d.policies && d.policies.length > 1;
+              return isMulti ? "#ff9900" : "#666666";
+            })
+            .attr("stroke-width", (d) => {
+              const isMulti = d.policies && d.policies.length > 1;
+              return isMulti ? 2 : 1;
+            })
+            .attr("stroke-opacity", 0.8);
 
           // Hide tooltip
           tooltip.classed("hidden", true);
@@ -481,7 +432,8 @@ const GraphVisualization = ({ graphData }) => {
         .on("mouseover", function (event, d) {
           // Highlight the node
           d3.select(this)
-            .select("circle, rect, polygon")
+            .select("rect")
+            .attr("stroke", "#ff3366")
             .attr("stroke-width", 3);
 
           // Find connected links for the classic view
@@ -498,20 +450,30 @@ const GraphVisualization = ({ graphData }) => {
               );
           }
 
-          // Show node tooltip
+          // Calculate position near the node (not cursor)
+          const nodePosition = d3.select(this).node().getBoundingClientRect();
+          const containerPosition =
+            graphContainerRef.current.getBoundingClientRect();
+
+          // Show node details in tooltip near the node
           tooltip
             .html(getNodeTooltipContent(d))
-            .style("left", event.pageX + 10 + "px")
-            .style("top", event.pageY - 10 + "px")
+            .style(
+              "left",
+              nodePosition.right - containerPosition.left + 5 + "px",
+            )
+            .style("top", nodePosition.top - containerPosition.top + "px")
             .classed("hidden", false);
         })
         .on("mouseout", function () {
           // Restore node appearance
+          const d = d3.select(this).datum();
+          const isMultiPolicy = d.policies && d.policies.length > 1;
+
           d3.select(this)
-            .select("circle, rect, polygon")
-            .attr("stroke-width", (d) =>
-              d.policies && d.policies.length > 1 ? 2 : 1.5,
-            );
+            .select("rect")
+            .attr("stroke", isMultiPolicy ? "#ff9900" : "#666666")
+            .attr("stroke-width", isMultiPolicy ? 2 : 1);
 
           // Restore link appearance differently based on view
           if (currentVisualizationType === "classic") {
@@ -531,12 +493,49 @@ const GraphVisualization = ({ graphData }) => {
             // Highlight the link
             d3.select(this).select("line").attr("stroke-width", 3);
 
-            // Show link tooltip
-            tooltip
-              .html(getLinkTooltipContent(d, getPortsText))
-              .style("left", event.pageX + 10 + "px")
-              .style("top", event.pageY - 10 + "px")
-              .classed("hidden", false);
+            // Position tooltip near the midpoint of the link
+            const sourceNode = d3
+              .select(
+                nodesGroup
+                  .nodes()
+                  .find((node) => d3.select(node).datum().id === d.source.id),
+              )
+              .node();
+
+            const targetNode = d3
+              .select(
+                nodesGroup
+                  .nodes()
+                  .find((node) => d3.select(node).datum().id === d.target.id),
+              )
+              .node();
+
+            if (sourceNode && targetNode) {
+              const sourceBounds = sourceNode.getBoundingClientRect();
+              const targetBounds = targetNode.getBoundingClientRect();
+              const containerPosition =
+                graphContainerRef.current.getBoundingClientRect();
+
+              const midX =
+                (sourceBounds.left + targetBounds.left) / 2 -
+                containerPosition.left;
+              const midY =
+                (sourceBounds.top + targetBounds.top) / 2 -
+                containerPosition.top;
+
+              tooltip
+                .html(getLinkTooltipContent(d, getPortsText))
+                .style("left", midX + 10 + "px")
+                .style("top", midY - 10 + "px")
+                .classed("hidden", false);
+            } else {
+              // Fallback to cursor position
+              tooltip
+                .html(getLinkTooltipContent(d, getPortsText))
+                .style("left", event.pageX + 10 + "px")
+                .style("top", event.pageY - 10 + "px")
+                .classed("hidden", false);
+            }
           })
           .on("mouseout", function () {
             // Restore link appearance
@@ -577,14 +576,14 @@ const GraphVisualization = ({ graphData }) => {
           })
           .attr("y", ([namespace, nodes]) => {
             return (
-              nodes.reduce((sum, node) => sum + node.y, 0) / nodes.length - 30
+              nodes.reduce((sum, node) => sum + node.y, 0) / nodes.length - 55
             );
           })
           .attr("text-anchor", "middle")
-          .attr("font-size", "12px")
+          .attr("font-size", "14px")
           .attr("font-weight", "bold")
-          .attr("fill", "#ffffff")
-          .attr("stroke", "#000000")
+          .attr("fill", "#333333")
+          .attr("stroke", "#ffffff")
           .attr("stroke-width", 0.5)
           .attr("paint-order", "stroke")
           .text(([namespace]) => `Namespace: ${namespace}`);
@@ -674,6 +673,10 @@ const GraphVisualization = ({ graphData }) => {
             resetLayout={renderGraph}
           />
           <InfoPanel visualizationType={visualizationType} />
+          <NodeCountDisplay
+            graphData={graphData}
+            deduplicateNodes={deduplicateNodes}
+          />
           <svg ref={svgRef} className="w-full h-full"></svg>
         </>
       ) : (

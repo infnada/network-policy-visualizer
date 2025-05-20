@@ -103,41 +103,203 @@ export const getNodeStrokeColor = (node) => {
  * @returns {String} - HTML content for tooltip
  */
 export const getNodeTooltipContent = (node) => {
-  let tooltipContent = `<strong>${node.label}</strong><br/>`;
-  tooltipContent += `Type: ${node.type}<br/>`;
+  let tooltipContent = `<div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">${node.label}</div>`;
 
-  if (node.policies && node.policies.length > 0) {
-    tooltipContent += `Referenced by policies: ${node.policies.join(", ")}<br/>`;
+  // Add node type
+  tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Type:</span> ${node.type}</div>`;
+
+  // Add namespace for pod nodes
+  if (node.type === "pod" && node.details && node.details.namespace) {
+    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Namespace:</span> ${node.details.namespace}</div>`;
   }
 
-  if (node.detailText) {
-    tooltipContent += `${node.detailText}`;
+  // Add selector details
+  if (node.type === "pod" && node.details && node.details.podSelector) {
+    let selectorText = "";
+
+    if (node.details.podSelector.matchLabels) {
+      selectorText += `<div style="margin-left: 10px; margin-bottom: 5px;"><u>Match Labels:</u><br/>`;
+      selectorText += Object.entries(node.details.podSelector.matchLabels)
+        .map(
+          ([key, value]) =>
+            `<div style="margin-left: 15px;">${key}: ${value}</div>`,
+        )
+        .join("");
+      selectorText += `</div>`;
+    }
+
+    if (node.details.podSelector.matchExpressions) {
+      selectorText += `<div style="margin-left: 10px;"><u>Match Expressions:</u><br/>`;
+      selectorText += node.details.podSelector.matchExpressions
+        .map(
+          (expr) =>
+            `<div style="margin-left: 15px;">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
+        )
+        .join("");
+      selectorText += `</div>`;
+    }
+
+    if (selectorText) {
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Selector:</span><br/>${selectorText}</div>`;
+    }
+  }
+
+  // Add CIDR for IP blocks
+  if (node.type === "ipBlock" && node.details) {
+    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">CIDR:</span> ${node.details.cidr || "Unknown"}</div>`;
+
+    if (node.details.except && node.details.except.length > 0) {
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Except:</span> ${node.details.except.join(", ")}</div>`;
+    }
+  }
+
+  // Add combined selector info
+  if (node.type === "combined") {
+    tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Combined Namespace+Pod Selector</span></div>`;
+
+    // Extract namespace information
+    let extractedNamespace = null;
+    if (node.details && node.details.namespace) {
+      if (node.details.namespace.matchLabels) {
+        const namespaceLabels = node.details.namespace.matchLabels;
+        // Try to find the namespace name from labels
+        const nameKey = Object.keys(namespaceLabels).find(
+          (key) =>
+            key.includes("name") || key.includes("kubernetes.io/metadata.name"),
+        );
+
+        if (nameKey) {
+          extractedNamespace = namespaceLabels[nameKey];
+          tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600;">Namespace:</span> ${extractedNamespace}</div>`;
+        }
+      } else if (node.details.namespace.matchExpressions) {
+        // Try to extract namespace from matchExpressions
+        const namespaceExpr = node.details.namespace.matchExpressions.find(
+          (expr) =>
+            expr.key.includes("name") &&
+            expr.operator === "In" &&
+            expr.values &&
+            expr.values.length > 0,
+        );
+
+        if (namespaceExpr) {
+          extractedNamespace = namespaceExpr.values[0];
+          tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600;">Namespace:</span> ${extractedNamespace}</div>`;
+        }
+      }
+
+      // Show namespace selector details
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Namespace Selector:</span><br/>`;
+      if (node.details.namespace.matchLabels) {
+        tooltipContent += `<div style="margin-left: 10px; margin-bottom: 5px;"><u>Match Labels:</u><br/>`;
+        tooltipContent += Object.entries(node.details.namespace.matchLabels)
+          .map(
+            ([key, value]) =>
+              `<div style="margin-left: 15px;">${key}: ${value}</div>`,
+          )
+          .join("");
+        tooltipContent += `</div>`;
+      }
+
+      if (node.details.namespace.matchExpressions) {
+        tooltipContent += `<div style="margin-left: 10px;"><u>Match Expressions:</u><br/>`;
+        tooltipContent += node.details.namespace.matchExpressions
+          .map(
+            (expr) =>
+              `<div style="margin-left: 15px;">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
+          )
+          .join("");
+        tooltipContent += `</div>`;
+      }
+      tooltipContent += `</div>`;
+    }
+
+    // Show pod selector details
+    if (node.details && node.details.pod) {
+      tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Pod Selector:</span><br/>`;
+      if (node.details.pod.matchLabels) {
+        tooltipContent += `<div style="margin-left: 10px; margin-bottom: 5px;"><u>Match Labels:</u><br/>`;
+        tooltipContent += Object.entries(node.details.pod.matchLabels)
+          .map(
+            ([key, value]) =>
+              `<div style="margin-left: 15px;">${key}: ${value}</div>`,
+          )
+          .join("");
+        tooltipContent += `</div>`;
+      }
+
+      if (node.details.pod.matchExpressions) {
+        tooltipContent += `<div style="margin-left: 10px;"><u>Match Expressions:</u><br/>`;
+        tooltipContent += node.details.pod.matchExpressions
+          .map(
+            (expr) =>
+              `<div style="margin-left: 15px;">${expr.key} ${expr.operator} [${expr.values?.join(", ") || ""}]</div>`,
+          )
+          .join("");
+        tooltipContent += `</div>`;
+      }
+      tooltipContent += `</div>`;
+    }
+  }
+
+  // Add policies that reference this node
+  if (node.policies && node.policies.length > 0) {
+    tooltipContent += `<div style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px;">
+      <span style="font-weight: 600;">Referenced by policies:</span><br/>
+      ${node.policies.map((p) => `<div style="margin-left: 10px;">• ${p}</div>`).join("")}
+    </div>`;
   }
 
   return tooltipContent;
 };
 
 /**
- * Prepares tooltip content for a link
+ * Prepares tooltip content for a link, supporting multiple ports per policy
  * @param {Object} link - The link data
  * @param {Function} getPortsText - Function to format ports
  * @returns {String} - HTML content for tooltip
  */
 export const getLinkTooltipContent = (link, getPortsText) => {
-  // Format ports for better display
-  const ports = getPortsText(link.ports);
+  let tooltipContent = `<div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+    ${link.policy}
+  </div>`;
 
-  // Prepare detailed tooltip content
-  let tooltipContent = `<strong>Policy: ${link.policy}</strong><br/>`;
-  tooltipContent += `Direction: ${link.direction}<br/>`;
-  tooltipContent += `Ports: ${ports}<br/>`;
+  tooltipContent += `<div style="margin-bottom: 8px;">
+    <span style="font-weight: 600;">Direction:</span> 
+    <span style="color: ${link.direction === "ingress" ? "#ff3366" : "#33cc66"};">
+      ${link.direction.charAt(0).toUpperCase() + link.direction.slice(1)}
+    </span>
+  </div>`;
+
+  // Handle different ports per policy
+  if (link.detailedPorts && link.portDetails) {
+    tooltipContent += `<div style="margin-bottom: 8px;">
+      <span style="font-weight: 600;">Ports by Policy:</span>
+      <div style="margin-left: 10px; margin-top: 5px;">
+        ${link.portDetails
+          .split("\n")
+          .map((line) => `<div style="margin-bottom: 3px;">• ${line}</div>`)
+          .join("")}
+      </div>
+    </div>`;
+  } else {
+    // Format ports for better display (single port set)
+    const ports = getPortsText(link.ports);
+    tooltipContent += `<div style="margin-bottom: 8px;">
+      <span style="font-weight: 600;">Ports:</span> ${ports}
+    </div>`;
+  }
 
   if (link.crossPolicy) {
-    tooltipContent += `<strong>Cross-Policy Connection</strong><br/>`;
+    tooltipContent += `<div style="margin-top: 8px; color: #ff9900; font-weight: 600;">
+      Cross-Policy Connection
+    </div>`;
   }
 
   if (link.combinedSelector) {
-    tooltipContent += `Combined namespace+pod selector`;
+    tooltipContent += `<div style="margin-top: 8px; color: #9966cc; font-weight: 600;">
+      Combined namespace+pod selector
+    </div>`;
   }
 
   return tooltipContent;

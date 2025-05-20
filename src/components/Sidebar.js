@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import NodeFilter from "./NodeFilter"; // Import the new NodeFilter component
 
 const Sidebar = ({
   policies,
@@ -13,6 +14,8 @@ const Sidebar = ({
   setFilteredPolicies,
   onDirectionFilterChange,
   directionFilter = "all",
+  deduplicateNodes = true,
+  onDeduplicateNodesChange,
 }) => {
   const [filters, setFilters] = useState({
     namespaces: [],
@@ -135,6 +138,15 @@ const Sidebar = ({
     [onDirectionFilterChange],
   );
 
+  const handleDeduplicateNodesChange = useCallback(
+    (deduplicate) => {
+      if (onDeduplicateNodesChange) {
+        onDeduplicateNodesChange(deduplicate);
+      }
+    },
+    [onDeduplicateNodesChange],
+  );
+
   const clearFilters = useCallback(() => {
     setFilters({
       namespaces: [],
@@ -145,6 +157,7 @@ const Sidebar = ({
     if (onDirectionFilterChange) {
       onDirectionFilterChange("all");
     }
+    // Do not reset node deduplication - it's a view preference, not a filter
   }, [onDirectionFilterChange]);
 
   const toggleSection = useCallback(
@@ -313,6 +326,12 @@ const Sidebar = ({
             </div>
 
             <div className="space-y-3">
+              {/* Node Deduplication Filter */}
+              <NodeFilter
+                deduplicateNodes={deduplicateNodes}
+                onDeduplicateNodesChange={handleDeduplicateNodesChange}
+              />
+
               {/* Traffic Direction Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
