@@ -1,4 +1,4 @@
-// Enhanced NetworkPolicy parsers with cross-policy linking and node deduplication
+// src/utils/enhancedParsers.js - Complete fix including all required functions
 
 /**
  * Builds graph data from NetworkPolicy objects with improved cross-policy connections
@@ -139,6 +139,73 @@ export const buildGraphData = (policies, deduplicateNodes = true) => {
         }
       }
 
+      // Helper to add a link with deduplication
+      const addLink = (
+        sourceId,
+        targetId,
+        ports,
+        direction,
+        policy,
+        ruleIndex,
+        options = {},
+      ) => {
+        const baseLinkId = generateLinkId(
+          sourceId,
+          targetId,
+          direction,
+          policy,
+        );
+
+        // Check if we already have a similar link (ignoring ports)
+        const existingLink = linkRegistry.get(baseLinkId);
+
+        if (existingLink && deduplicateNodes) {
+          // Only combine links if deduplication is enabled
+          // Update existing link with additional policy info
+          existingLink.policies = existingLink.policies || [
+            existingLink.policy,
+          ];
+          if (!existingLink.policies.includes(policy)) {
+            existingLink.policies.push(policy);
+            existingLink.policy = existingLink.policies.join(", ");
+          }
+
+          // Merge ports if they differ
+          if (JSON.stringify(existingLink.ports) !== JSON.stringify(ports)) {
+            if (!existingLink.portsMap) {
+              existingLink.portsMap = {};
+              // Add the original ports
+              existingLink.portsMap[existingLink.policies[0]] =
+                existingLink.ports;
+            }
+
+            // Add the new ports
+            existingLink.portsMap[policy] = ports;
+
+            // Update tooltip to show different ports per policy
+            existingLink.detailedPorts = true;
+          }
+
+          return existingLink;
+        } else {
+          // Create new link
+          const newLink = {
+            source: sourceId,
+            target: targetId,
+            ports,
+            direction,
+            policy,
+            ruleIndex,
+            ...options,
+          };
+
+          // Register this link for deduplication
+          linkRegistry.set(baseLinkId, newLink);
+          links.push(newLink);
+          return newLink;
+        }
+      };
+
       // Helper function to add nodes with consistent IDs to avoid duplication
       const addNode = (type, namespace, details, direction) => {
         // Generate a consistent ID based on selector, not policy-specific info
@@ -253,14 +320,25 @@ export const buildGraphData = (policies, deduplicateNodes = true) => {
                 : "Any Destination";
           }
 
+          // CRITICAL FIX: For combined nodes, preserve the actual selectors in details
+          // instead of just storing the namespace string
+          const nodeDetails =
+            type === "combined"
+              ? {
+                  // Keep the original namespace and pod selector objects
+                  namespace: details.namespace,
+                  pod: details.pod,
+                }
+              : {
+                  ...details,
+                  namespace, // Only for non-combined nodes, store the namespace string
+                };
+
           nodes.set(id, {
             id,
             label,
             type,
-            details: {
-              ...details,
-              namespace,
-            },
+            details: nodeDetails, // Use the corrected details object
             direction,
             detailText,
             color:
@@ -297,73 +375,6 @@ export const buildGraphData = (policies, deduplicateNodes = true) => {
         return id;
       };
 
-      // Helper to add a link with deduplication
-      const addLink = (
-        sourceId,
-        targetId,
-        ports,
-        direction,
-        policy,
-        ruleIndex,
-        options = {},
-      ) => {
-        const baseLinkId = generateLinkId(
-          sourceId,
-          targetId,
-          direction,
-          policy,
-        );
-
-        // Check if we already have a similar link (ignoring ports)
-        const existingLink = linkRegistry.get(baseLinkId);
-
-        if (existingLink && deduplicateNodes) {
-          // Only combine links if deduplication is enabled
-          // Update existing link with additional policy info
-          existingLink.policies = existingLink.policies || [
-            existingLink.policy,
-          ];
-          if (!existingLink.policies.includes(policy)) {
-            existingLink.policies.push(policy);
-            existingLink.policy = existingLink.policies.join(", ");
-          }
-
-          // Merge ports if they differ
-          if (JSON.stringify(existingLink.ports) !== JSON.stringify(ports)) {
-            if (!existingLink.portsMap) {
-              existingLink.portsMap = {};
-              // Add the original ports
-              existingLink.portsMap[existingLink.policies[0]] =
-                existingLink.ports;
-            }
-
-            // Add the new ports
-            existingLink.portsMap[policy] = ports;
-
-            // Update tooltip to show different ports per policy
-            existingLink.detailedPorts = true;
-          }
-
-          return existingLink;
-        } else {
-          // Create new link
-          const newLink = {
-            source: sourceId,
-            target: targetId,
-            ports,
-            direction,
-            policy,
-            ruleIndex,
-            ...options,
-          };
-
-          // Register this link for deduplication
-          linkRegistry.set(baseLinkId, newLink);
-          links.push(newLink);
-          return newLink;
-        }
-      };
-
       // Process ingress rules
       policy.ingress.forEach((rule, ruleIndex) => {
         if (!rule) return;
@@ -391,12 +402,12 @@ export const buildGraphData = (policies, deduplicateNodes = true) => {
             let fromId;
 
             if (from.namespaceSelector && from.podSelector) {
-              // Combined selector
+              // Combined selector - CRITICAL FIX: Preserve both selectors
               fromId = addNode(
                 "combined",
                 policy.namespace,
                 {
-                  namespace: from.namespaceSelector,
+                  namespace: from.namespaceSelector, // Preserve the full selector object
                   pod: from.podSelector,
                 },
                 "ingress",
@@ -465,12 +476,12 @@ export const buildGraphData = (policies, deduplicateNodes = true) => {
             let toId;
 
             if (to.namespaceSelector && to.podSelector) {
-              // Combined selector
+              // Combined selector - CRITICAL FIX: Preserve both selectors
               toId = addNode(
                 "combined",
                 policy.namespace,
                 {
-                  namespace: to.namespaceSelector,
+                  namespace: to.namespaceSelector, // Preserve the full selector object
                   pod: to.podSelector,
                 },
                 "egress",

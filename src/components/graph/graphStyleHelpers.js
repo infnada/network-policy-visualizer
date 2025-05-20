@@ -1,5 +1,65 @@
-// src/components/graph/graphStyleHelpers.js
-// Helper functions for styling graph elements
+// src/components/graph/graphStyleHelpers.js - Updated tooltip function
+
+/**
+ * Extracts namespace name from selector for tooltip display
+ * This function handles both matchLabels and matchExpressions
+ */
+const extractNamespaceForTooltip = (namespaceSelector) => {
+  if (!namespaceSelector) return null;
+
+  // Try to extract from matchLabels
+  if (namespaceSelector.matchLabels) {
+    // Look for common namespace label keys
+    const namespaceKeys = [
+      "kubernetes.io/metadata.name",
+      "name",
+      "k8s-app",
+      "app.kubernetes.io/name",
+      "app",
+    ];
+
+    for (const key of namespaceKeys) {
+      if (namespaceSelector.matchLabels[key]) {
+        return namespaceSelector.matchLabels[key];
+      }
+    }
+  }
+
+  // Try to extract from matchExpressions
+  if (
+    namespaceSelector.matchExpressions &&
+    Array.isArray(namespaceSelector.matchExpressions) &&
+    namespaceSelector.matchExpressions.length > 0
+  ) {
+    // First, look specifically for kubernetes.io/metadata.name with In operator
+    const metadataExpr = namespaceSelector.matchExpressions.find(
+      (expr) =>
+        expr.key === "kubernetes.io/metadata.name" &&
+        expr.operator === "In" &&
+        Array.isArray(expr.values) &&
+        expr.values.length > 0,
+    );
+
+    if (metadataExpr) {
+      return metadataExpr.values[0];
+    }
+
+    // If not found, try any expressions with 'In' operator and a name-related key
+    const namespaceExpr = namespaceSelector.matchExpressions.find(
+      (expr) =>
+        (expr.key.includes("name") || expr.key.includes("app")) &&
+        expr.operator === "In" &&
+        Array.isArray(expr.values) &&
+        expr.values.length > 0,
+    );
+
+    if (namespaceExpr) {
+      return namespaceExpr.values[0];
+    }
+  }
+
+  return null;
+};
 
 /**
  * Generates a path for a link between nodes
@@ -8,18 +68,42 @@
  * @returns {String} - SVG path command
  */
 export const createLinkPath = (link, visualizationType) => {
+  // Safely access source and target coordinates
+  // Defensive coding to prevent NaN errors
   const d = link;
+
+  // Make sure source and target objects exist
+  if (!d.source || !d.target) {
+    console.error("Invalid link: missing source or target", d);
+    return "M0,0 L0,0"; // Return dummy path to avoid rendering errors
+  }
+
+  // Make sure coordinates exist and are valid numbers
+  const sourceX = typeof d.source.x === "number" ? d.source.x : 0;
+  const sourceY = typeof d.source.y === "number" ? d.source.y : 0;
+  const targetX = typeof d.target.x === "number" ? d.target.x : 0;
+  const targetY = typeof d.target.y === "number" ? d.target.y : 0;
+
+  // Check for NaN values which can cause rendering errors
+  if (isNaN(sourceX) || isNaN(sourceY) || isNaN(targetX) || isNaN(targetY)) {
+    console.error("Invalid coordinates in link path", {
+      link: d,
+      coords: { sourceX, sourceY, targetX, targetY },
+    });
+    return "M0,0 L0,0"; // Return dummy path to avoid rendering errors
+  }
+
   if (visualizationType === "enhanced") {
     // Curved paths for enhanced view
-    const sourceX = d.source.x;
-    const sourceY = d.source.y;
-    const targetX = d.target.x;
-    const targetY = d.target.y;
-
     // Direct distance between nodes
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
     const dr = Math.sqrt(dx * dx + dy * dy);
+
+    // If distance is too small, just draw a straight line
+    if (dr < 1) {
+      return `M${sourceX},${sourceY} L${targetX},${targetY}`;
+    }
 
     // Make the curve larger for cross-policy links and when nodes are closer
     const curve = d.crossPolicy ? dr * 0.7 : dr * 0.3;
@@ -40,10 +124,19 @@ export const createLinkPath = (link, visualizationType) => {
     const controlX = midX + perpX;
     const controlY = midY + perpY;
 
+    // Final check for NaN in calculated values
+    if (isNaN(controlX) || isNaN(controlY)) {
+      console.error("Invalid control point in curved path", {
+        link: d,
+        calculated: { midX, midY, perpX, perpY, controlX, controlY },
+      });
+      return `M${sourceX},${sourceY} L${targetX},${targetY}`;
+    }
+
     return `M${sourceX},${sourceY} Q${controlX},${controlY} ${targetX},${targetY}`;
   } else {
     // Straight lines for classic view
-    return `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`;
+    return `M${sourceX},${sourceY} L${targetX},${targetY}`;
   }
 };
 
@@ -98,7 +191,7 @@ export const getNodeStrokeColor = (node) => {
 };
 
 /**
- * Prepares tooltip content for a node
+ * Prepares tooltip content for a node with improved namespace extraction
  * @param {Object} node - The node data
  * @returns {String} - HTML content for tooltip
  */
@@ -153,39 +246,17 @@ export const getNodeTooltipContent = (node) => {
     }
   }
 
-  // Add combined selector info
+  // Improved combined selector info
   if (node.type === "combined") {
     tooltipContent += `<div style="margin-bottom: 8px;"><span style="font-weight: 600;">Combined Namespace+Pod Selector</span></div>`;
 
-    // Extract namespace information
+    // Extract namespace information with improved method
     let extractedNamespace = null;
     if (node.details && node.details.namespace) {
-      if (node.details.namespace.matchLabels) {
-        const namespaceLabels = node.details.namespace.matchLabels;
-        // Try to find the namespace name from labels
-        const nameKey = Object.keys(namespaceLabels).find(
-          (key) =>
-            key.includes("name") || key.includes("kubernetes.io/metadata.name"),
-        );
+      extractedNamespace = extractNamespaceForTooltip(node.details.namespace);
 
-        if (nameKey) {
-          extractedNamespace = namespaceLabels[nameKey];
-          tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600;">Namespace:</span> ${extractedNamespace}</div>`;
-        }
-      } else if (node.details.namespace.matchExpressions) {
-        // Try to extract namespace from matchExpressions
-        const namespaceExpr = node.details.namespace.matchExpressions.find(
-          (expr) =>
-            expr.key.includes("name") &&
-            expr.operator === "In" &&
-            expr.values &&
-            expr.values.length > 0,
-        );
-
-        if (namespaceExpr) {
-          extractedNamespace = namespaceExpr.values[0];
-          tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600;">Namespace:</span> ${extractedNamespace}</div>`;
-        }
+      if (extractedNamespace) {
+        tooltipContent += `<div style="margin-bottom: 5px;"><span style="font-weight: 600;">Namespace:</span> ${extractedNamespace}</div>`;
       }
 
       // Show namespace selector details

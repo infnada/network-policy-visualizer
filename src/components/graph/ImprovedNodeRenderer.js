@@ -1,4 +1,4 @@
-// src/components/graph/ImprovedNodeRenderer.js
+// src/components/graph/ImprovedNodeRenderer.js with fixed namespace extraction
 
 import React from "react";
 
@@ -33,7 +33,20 @@ const extractNamespaceFromSelector = (namespaceSelector) => {
     namespaceSelector.matchExpressions &&
     namespaceSelector.matchExpressions.length > 0
   ) {
-    // Find expressions with 'In' operator and a name-related key
+    // Look specifically for kubernetes.io/metadata.name with In operator
+    const metadataExpr = namespaceSelector.matchExpressions.find(
+      (expr) =>
+        expr.key === "kubernetes.io/metadata.name" &&
+        expr.operator === "In" &&
+        Array.isArray(expr.values) &&
+        expr.values.length > 0,
+    );
+
+    if (metadataExpr) {
+      return metadataExpr.values[0];
+    }
+
+    // If not found, try any expressions with 'In' operator and a name-related key
     const namespaceExpr = namespaceSelector.matchExpressions.find(
       (expr) =>
         (expr.key.includes("name") || expr.key.includes("app")) &&

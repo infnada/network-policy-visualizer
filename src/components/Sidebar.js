@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import NodeFilter from "./NodeFilter"; // Import the new NodeFilter component
+import NodeFilter from "./NodeFilter"; // Import the NodeFilter component
 
 const Sidebar = ({
   policies,
@@ -16,6 +16,7 @@ const Sidebar = ({
   directionFilter = "all",
   deduplicateNodes = true,
   onDeduplicateNodesChange,
+  graphData = null, // Optional graph data for additional combined selector extraction
 }) => {
   const [filters, setFilters] = useState({
     namespaces: [],
@@ -33,61 +34,404 @@ const Sidebar = ({
   const [namespaceDropdownOpen, setNamespaceDropdownOpen] = useState(false);
   const [podDropdownOpen, setPodDropdownOpen] = useState(false);
 
+  // Sorting state - default to sorted alphabetically
+  const [sortNamespaces, setSortNamespaces] = useState(true);
+  const [sortPods, setSortPods] = useState(true);
+  const [sortPolicies, setSortPolicies] = useState(true);
+
+  // Track combined selectors
+  const [combinedNamespaces, setCombinedNamespaces] = useState(new Set());
+  const [combinedPods, setCombinedPods] = useState(new Set());
+
+  // Helper function to sort arrays alphabetically
+  const sortAlphabetically = (items) => {
+    return [...items].sort((a, b) => a.localeCompare(b));
+  };
+
+  // Helper function to extract namespace names from namespace selectors
+  const extractNamespaceFromSelector = (namespaceSelector) => {
+    if (!namespaceSelector) return null;
+
+    // Extract from matchLabels
+    if (namespaceSelector.matchLabels) {
+      const namespaceKeys = [
+        "kubernetes.io/metadata.name",
+        "name",
+        "k8s-app",
+        "app.kubernetes.io/name",
+        "app",
+      ];
+
+      for (const key of namespaceKeys) {
+        if (namespaceSelector.matchLabels[key]) {
+          return namespaceSelector.matchLabels[key];
+        }
+      }
+    }
+
+    // Extract from matchExpressions
+    if (
+      namespaceSelector.matchExpressions &&
+      Array.isArray(namespaceSelector.matchExpressions) &&
+      namespaceSelector.matchExpressions.length > 0
+    ) {
+      // Look specifically for kubernetes.io/metadata.name with In operator
+      const metadataExpr = namespaceSelector.matchExpressions.find(
+        (expr) =>
+          expr.key === "kubernetes.io/metadata.name" &&
+          expr.operator === "In" &&
+          Array.isArray(expr.values) &&
+          expr.values.length > 0,
+      );
+
+      if (metadataExpr) {
+        return metadataExpr.values[0];
+      }
+
+      // If not found, try any expressions with 'In' operator and a name-related key
+      const namespaceExpr = namespaceSelector.matchExpressions.find(
+        (expr) =>
+          (expr.key.includes("name") || expr.key.includes("app")) &&
+          expr.operator === "In" &&
+          Array.isArray(expr.values) &&
+          expr.values.length > 0,
+      );
+
+      if (namespaceExpr) {
+        return namespaceExpr.values[0];
+      }
+    }
+
+    return null;
+  };
+
+  // Helper function to extract pod names from pod selectors
+  const extractPodFromSelector = (podSelector) => {
+    if (!podSelector || !podSelector.matchLabels) return null;
+
+    // Try to find app name or similar from labels
+    const appKeys = [
+      "app",
+      "app.kubernetes.io/name",
+      "k8s-app",
+      "name",
+      "component",
+      "app.kubernetes.io/instance",
+      "app.kubernetes.io/component",
+    ];
+
+    for (const key of appKeys) {
+      if (podSelector.matchLabels[key]) {
+        return podSelector.matchLabels[key];
+      }
+    }
+
+    return null;
+  };
+
   // Extract available filter options from policies
   useEffect(() => {
-    const namespaces = [...new Set(policies.map((p) => p.namespace))];
-    setAvailableNamespaces(namespaces);
+    // Extract namespaces from policies metadata
+    const namespaces = new Set(policies.map((p) => p.namespace));
 
-    // Extract unique pod names from selectors
+    // Extract pod selector names
     const pods = new Set();
-    policies.forEach((p) => {
-      if (p.podSelector?.matchLabels) {
-        // Try to find app name or similar from labels
-        const appLabels = Object.entries(p.podSelector.matchLabels)
-          .filter(([key]) => key.includes("app") || key.includes("name"))
-          .map(([_, value]) => value);
 
-        appLabels.forEach((app) => pods.add(app));
+    // Track which items come from combined selectors
+    const combinedNs = new Set();
+    const combinedPd = new Set();
+
+    // Process every policy to find all pods and namespaces
+    policies.forEach((policy) => {
+      // Extract from policy's pod selector
+      if (policy.podSelector?.matchLabels) {
+        const podName = extractPodFromSelector(policy.podSelector);
+        if (podName) pods.add(podName);
+      }
+
+      // Process ingress rules for combined selectors and more pods/namespaces
+      if (policy.ingress && Array.isArray(policy.ingress)) {
+        policy.ingress.forEach((rule) => {
+          if (rule.from && Array.isArray(rule.from)) {
+            rule.from.forEach((from) => {
+              // Extract pods from pod selectors
+              if (from.podSelector) {
+                const podName = extractPodFromSelector(from.podSelector);
+                if (podName) pods.add(podName);
+              }
+
+              // Extract namespaces from namespace selectors
+              if (from.namespaceSelector) {
+                const namespaceName = extractNamespaceFromSelector(
+                  from.namespaceSelector,
+                );
+                if (namespaceName) namespaces.add(namespaceName);
+              }
+
+              // For combined selectors, extract both pod and namespace
+              if (from.podSelector && from.namespaceSelector) {
+                const podName = extractPodFromSelector(from.podSelector);
+                const namespaceName = extractNamespaceFromSelector(
+                  from.namespaceSelector,
+                );
+
+                if (podName) {
+                  pods.add(podName);
+                  combinedPd.add(podName);
+                }
+                if (namespaceName) {
+                  namespaces.add(namespaceName);
+                  combinedNs.add(namespaceName);
+                }
+              }
+            });
+          }
+        });
+      }
+
+      // Process egress rules for combined selectors and more pods/namespaces
+      if (policy.egress && Array.isArray(policy.egress)) {
+        policy.egress.forEach((rule) => {
+          if (rule.to && Array.isArray(rule.to)) {
+            rule.to.forEach((to) => {
+              // Extract pods from pod selectors
+              if (to.podSelector) {
+                const podName = extractPodFromSelector(to.podSelector);
+                if (podName) pods.add(podName);
+              }
+
+              // Extract namespaces from namespace selectors
+              if (to.namespaceSelector) {
+                const namespaceName = extractNamespaceFromSelector(
+                  to.namespaceSelector,
+                );
+                if (namespaceName) namespaces.add(namespaceName);
+              }
+
+              // For combined selectors, extract both pod and namespace
+              if (to.podSelector && to.namespaceSelector) {
+                const podName = extractPodFromSelector(to.podSelector);
+                const namespaceName = extractNamespaceFromSelector(
+                  to.namespaceSelector,
+                );
+
+                if (podName) {
+                  pods.add(podName);
+                  combinedPd.add(podName);
+                }
+                if (namespaceName) {
+                  namespaces.add(namespaceName);
+                  combinedNs.add(namespaceName);
+                }
+              }
+            });
+          }
+        });
       }
     });
+
+    // Process the pre-built graph data if available
+    if (graphData && graphData.nodes) {
+      graphData.nodes.forEach((node) => {
+        if (node.type === "combined" && node.details) {
+          // Extract namespace from combined node details
+          if (node.details.namespace) {
+            const namespaceName = extractNamespaceFromSelector(
+              node.details.namespace,
+            );
+            if (namespaceName) {
+              namespaces.add(namespaceName);
+              combinedNs.add(namespaceName);
+            }
+          }
+
+          // Extract pod from combined node details
+          if (node.details.pod) {
+            const podName = extractPodFromSelector(node.details.pod);
+            if (podName) {
+              pods.add(podName);
+              combinedPd.add(podName);
+            }
+          }
+        }
+      });
+    }
+
+    // Update state with all found namespaces and pods
+    setAvailableNamespaces(Array.from(namespaces));
     setAvailablePods(Array.from(pods));
+
+    // Update combined tracking state
+    setCombinedNamespaces(combinedNs);
+    setCombinedPods(combinedPd);
 
     // Initialize filtered policies
     setLocalFilteredPolicies(policies);
-  }, [policies]);
+  }, [policies, graphData]);
 
   // Memoize the filtered policies
   const filteredPoliciesMemo = useMemo(() => {
     let filtered = [...policies];
 
-    if (filters.namespaces.length > 0) {
-      filtered = filtered.filter((p) =>
-        filters.namespaces.includes(p.namespace),
-      );
-    }
+    // Helper function to check if a policy uses a specific namespace
+    // in any of its rules (including combined selectors)
+    const policyUsesNamespace = (policy, targetNamespace) => {
+      // Check if the policy itself is in the target namespace
+      if (policy.namespace === targetNamespace) return true;
 
-    if (filters.pods.length > 0) {
-      filtered = filtered.filter((p) => {
-        // Check if any labels in podSelector match selected pods
-        if (p.podSelector?.matchLabels) {
-          const podLabels = Object.values(p.podSelector.matchLabels);
-          return filters.pods.some((pod) => podLabels.includes(pod));
+      // Check ingress rules for namespace selectors
+      if (policy.ingress && Array.isArray(policy.ingress)) {
+        for (const rule of policy.ingress) {
+          if (!rule.from || !Array.isArray(rule.from)) continue;
+
+          for (const from of rule.from) {
+            // Check namespace selectors
+            if (from.namespaceSelector) {
+              const namespaceName = extractNamespaceFromSelector(
+                from.namespaceSelector,
+              );
+              if (namespaceName === targetNamespace) return true;
+            }
+          }
         }
-        return false;
+      }
+
+      // Check egress rules for namespace selectors
+      if (policy.egress && Array.isArray(policy.egress)) {
+        for (const rule of policy.egress) {
+          if (!rule.to || !Array.isArray(rule.to)) continue;
+
+          for (const to of rule.to) {
+            // Check namespace selectors
+            if (to.namespaceSelector) {
+              const namespaceName = extractNamespaceFromSelector(
+                to.namespaceSelector,
+              );
+              if (namespaceName === targetNamespace) return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    };
+
+    // Helper function to check if a policy uses a specific pod
+    // in any of its rules (including combined selectors)
+    const policyUsesPod = (policy, targetPod) => {
+      // Check policy's main pod selector
+      if (policy.podSelector?.matchLabels) {
+        const podValues = Object.values(policy.podSelector.matchLabels);
+        if (podValues.includes(targetPod)) return true;
+      }
+
+      // Check ingress rules for pod selectors
+      if (policy.ingress && Array.isArray(policy.ingress)) {
+        for (const rule of policy.ingress) {
+          if (!rule.from || !Array.isArray(rule.from)) continue;
+
+          for (const from of rule.from) {
+            // Check pod selectors
+            if (from.podSelector?.matchLabels) {
+              const podValues = Object.values(from.podSelector.matchLabels);
+              if (podValues.includes(targetPod)) return true;
+            }
+          }
+        }
+      }
+
+      // Check egress rules for pod selectors
+      if (policy.egress && Array.isArray(policy.egress)) {
+        for (const rule of policy.egress) {
+          if (!rule.to || !Array.isArray(rule.to)) continue;
+
+          for (const to of rule.to) {
+            // Check pod selectors
+            if (to.podSelector?.matchLabels) {
+              const podValues = Object.values(to.podSelector.matchLabels);
+              if (podValues.includes(targetPod)) return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    };
+
+    // Apply namespace filter
+    if (filters.namespaces.length > 0) {
+      filtered = filtered.filter((policy) => {
+        // Check if the policy is in any of the selected namespaces
+        // or if it uses any of the selected namespaces in its rules
+        return filters.namespaces.some((namespace) =>
+          policyUsesNamespace(policy, namespace),
+        );
       });
     }
 
+    // Apply pod filter
+    if (filters.pods.length > 0) {
+      filtered = filtered.filter((policy) => {
+        // Check if the policy uses any of the selected pods
+        return filters.pods.some((pod) => policyUsesPod(policy, pod));
+      });
+    }
+
+    // Apply label filter
     if (filters.labels) {
-      filtered = filtered.filter((p) => {
-        // Check if any label key or value matches the filter
-        if (p.podSelector?.matchLabels) {
-          const allLabels = Object.entries(p.podSelector.matchLabels)
+      filtered = filtered.filter((policy) => {
+        // Check main pod selector labels
+        if (policy.podSelector?.matchLabels) {
+          const allLabels = Object.entries(policy.podSelector.matchLabels)
             .map(([key, value]) => `${key}:${value}`)
             .join(" ")
             .toLowerCase();
 
-          return allLabels.includes(filters.labels.toLowerCase());
+          if (allLabels.includes(filters.labels.toLowerCase())) {
+            return true;
+          }
         }
+
+        // Check ingress rule selectors
+        if (policy.ingress && Array.isArray(policy.ingress)) {
+          for (const rule of policy.ingress) {
+            if (!rule.from || !Array.isArray(rule.from)) continue;
+
+            for (const from of rule.from) {
+              if (from.podSelector?.matchLabels) {
+                const allLabels = Object.entries(from.podSelector.matchLabels)
+                  .map(([key, value]) => `${key}:${value}`)
+                  .join(" ")
+                  .toLowerCase();
+
+                if (allLabels.includes(filters.labels.toLowerCase())) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+
+        // Check egress rule selectors
+        if (policy.egress && Array.isArray(policy.egress)) {
+          for (const rule of policy.egress) {
+            if (!rule.to || !Array.isArray(rule.to)) continue;
+
+            for (const to of rule.to) {
+              if (to.podSelector?.matchLabels) {
+                const allLabels = Object.entries(to.podSelector.matchLabels)
+                  .map(([key, value]) => `${key}:${value}`)
+                  .join(" ")
+                  .toLowerCase();
+
+                if (allLabels.includes(filters.labels.toLowerCase())) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+
         return false;
       });
     }
@@ -371,10 +715,27 @@ const Sidebar = ({
                 </div>
               </div>
 
-              {/* Namespace Multi-select Dropdown */}
+              {/* Namespace Multi-select Dropdown with Sort Button */}
               <div className="relative namespace-dropdown">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Namespaces
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                  <span>Namespaces</span>
+                  <div className="flex items-center">
+                    <button
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        sortNamespaces
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                      onClick={() => setSortNamespaces(!sortNamespaces)}
+                      title={
+                        sortNamespaces
+                          ? "Sorted alphabetically"
+                          : "Original order"
+                      }
+                    >
+                      {sortNamespaces ? "Sorted" : "Unsorted"}
+                    </button>
+                  </div>
                 </label>
                 <div
                   className="flex items-center justify-between p-2 border rounded bg-white cursor-pointer"
@@ -410,7 +771,11 @@ const Sidebar = ({
                       </div>
                     ) : (
                       <div className="p-1">
-                        {availableNamespaces.map((namespace) => (
+                        {/* Apply sorting conditionally */}
+                        {(sortNamespaces
+                          ? sortAlphabetically(availableNamespaces)
+                          : availableNamespaces
+                        ).map((namespace) => (
                           <div
                             key={namespace}
                             className="flex items-center p-2 hover:bg-gray-100"
@@ -425,7 +790,17 @@ const Sidebar = ({
                               onChange={() => {}}
                               className="mr-2"
                             />
-                            <span className="text-sm">{namespace}</span>
+                            <span className="text-sm flex items-center">
+                              {namespace}
+                              {combinedNamespaces.has(namespace) && (
+                                <span
+                                  className="ml-1 text-xs px-1 bg-purple-100 text-purple-800 rounded"
+                                  title="Used in combined selectors"
+                                >
+                                  combined
+                                </span>
+                              )}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -434,10 +809,25 @@ const Sidebar = ({
                 )}
               </div>
 
-              {/* Pod Multi-select Dropdown */}
+              {/* Pod Multi-select Dropdown with Sort Button */}
               <div className="relative pod-dropdown">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pod Selectors
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                  <span>Pod Selectors</span>
+                  <div className="flex items-center">
+                    <button
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        sortPods
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                      onClick={() => setSortPods(!sortPods)}
+                      title={
+                        sortPods ? "Sorted alphabetically" : "Original order"
+                      }
+                    >
+                      {sortPods ? "Sorted" : "Unsorted"}
+                    </button>
+                  </div>
                 </label>
                 <div
                   className="flex items-center justify-between p-2 border rounded bg-white cursor-pointer"
@@ -462,7 +852,6 @@ const Sidebar = ({
                     />
                   </svg>
                 </div>
-
                 {podDropdownOpen && (
                   <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
                     {availablePods.length === 0 ? (
@@ -471,7 +860,11 @@ const Sidebar = ({
                       </div>
                     ) : (
                       <div className="p-1">
-                        {availablePods.map((pod) => (
+                        {/* Apply sorting conditionally */}
+                        {(sortPods
+                          ? sortAlphabetically(availablePods)
+                          : availablePods
+                        ).map((pod) => (
                           <div
                             key={pod}
                             className="flex items-center p-2 hover:bg-gray-100"
@@ -486,7 +879,17 @@ const Sidebar = ({
                               onChange={() => {}}
                               className="mr-2"
                             />
-                            <span className="text-sm">{pod}</span>
+                            <span className="text-sm flex items-center">
+                              {pod}
+                              {combinedPods.has(pod) && (
+                                <span
+                                  className="ml-1 text-xs px-1 bg-purple-100 text-purple-800 rounded"
+                                  title="Used in combined selectors"
+                                >
+                                  combined
+                                </span>
+                              )}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -516,12 +919,29 @@ const Sidebar = ({
           </div>
         )}
 
-        {/* Policies Section */}
+        {/* Policies Section with Sort Button */}
         {expandedSection === "policies" && (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <h2 className="text-lg font-semibold mb-2 flex-shrink-0">
-              Policies ({localFilteredPolicies.length})
-            </h2>
+            <div className="flex justify-between items-center mb-2 flex-shrink-0">
+              <h2 className="text-lg font-semibold">
+                Policies ({localFilteredPolicies.length})
+              </h2>
+              <div className="flex items-center space-x-2">
+                <button
+                  className={`text-xs px-2 py-0.5 rounded ${
+                    sortPolicies
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                  onClick={() => setSortPolicies(!sortPolicies)}
+                  title={
+                    sortPolicies ? "Sorted alphabetically" : "Original order"
+                  }
+                >
+                  {sortPolicies ? "Sorted" : "Unsorted"}
+                </button>
+              </div>
+            </div>
 
             {localFilteredPolicies.length === 0 ? (
               <p className="text-sm text-gray-600">
@@ -535,7 +955,13 @@ const Sidebar = ({
                 style={{ minHeight: 0 }}
               >
                 <ul className="divide-y divide-gray-200">
-                  {localFilteredPolicies.map((policy, index) => (
+                  {/* Apply sorting conditionally */}
+                  {(sortPolicies
+                    ? [...localFilteredPolicies].sort((a, b) =>
+                        a.name.localeCompare(b.name),
+                      )
+                    : localFilteredPolicies
+                  ).map((policy, index) => (
                     <li key={index} className="p-2 hover:bg-gray-50">
                       <div className="flex justify-between items-center">
                         <div className="flex-1 min-w-0">
