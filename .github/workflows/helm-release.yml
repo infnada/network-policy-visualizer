@@ -66,7 +66,7 @@ jobs:
           version: v3.11.1
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
+        uses: helm/chart-releaser-action@v1.7.0
         with:
           charts_dir: helm
           charts_repo_url: https://username.github.io/k8s-network-policy-visualizer
