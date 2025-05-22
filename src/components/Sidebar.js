@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import NodeFilter from "./NodeFilter";
-import ClusterIntegration from "./ClusterIntegration";
+import NodeFilter from "./NodeFilter.js";
+import ClusterIntegration from "./ClusterIntegration.js";
 
 const Sidebar = ({
   policies,

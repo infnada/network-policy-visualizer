@@ -1,4 +1,3 @@
-// src/components/graph/useGraphSimulation.js
 // This file provides custom hook for creating and managing the D3 force simulation
 
 import * as d3 from "d3";

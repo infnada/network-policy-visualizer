@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import PolicyDetails from "./PolicyDetails";
-import GraphVisualization from "./graph/GraphVisualization";
-import Sidebar from "./Sidebar";
-import ThemeToggle from "./ThemeToggle";
-import CyberpunkTheme from "./CyberpunkTheme";
-import { parseYaml, parseNetworkPolicy } from "../utils/parsers";
-import { buildGraphData } from "../utils/enhancedParsers";
+import PolicyDetails from "./PolicyDetails.js";
+import GraphVisualization from "./graph/GraphVisualization.js";
+import Sidebar from "./Sidebar.js";
+import ThemeToggle from "./ThemeToggle.js";
+import CyberpunkTheme from "./CyberpunkTheme.js";
+import { parseYaml, parseNetworkPolicy } from "../utils/parsers.js";
+import { buildGraphData } from "../utils/enhancedParsers.js";
 
 const NetworkPolicyVisualizer = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });

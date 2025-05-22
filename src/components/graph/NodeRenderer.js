@@ -1,8 +1,7 @@
-// src/components/graph/NodeRenderer.js
 // Component for rendering nodes in the network policy graph
 
 import React from "react";
-import { getNodeStrokeColor } from "./graphStyleHelpers";
+import { getNodeStrokeColor } from "./graphStyleHelpers.js";
 
 /**
  * Renders the appropriate shape for a node based on its type

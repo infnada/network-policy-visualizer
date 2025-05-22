@@ -1,7 +1,3 @@
-// src/components/graph/ImprovedNodeRenderer.js with fixed namespace extraction
-
-import React from "react";
-
 /**
  * Helper function to extract namespace name from selector
  * @param {Object} namespaceSelector - The namespace selector object

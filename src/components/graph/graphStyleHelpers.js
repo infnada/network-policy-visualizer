@@ -1,5 +1,3 @@
-// src/components/graph/graphStyleHelpers.js - Updated with theme support
-
 /**
  * Extracts namespace name from selector for tooltip display
  * This function handles both matchLabels and matchExpressions

@@ -1,5 +1,3 @@
-// src/components/graph/NodeCountDisplay.js
-
 import React from "react";
 
 /**

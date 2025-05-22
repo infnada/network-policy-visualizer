@@ -1,4 +1,3 @@
-// src/components/graph/GraphControls.js
 // Updated GraphControlPanel component with additional re-arrange option for classic view
 
 import React from "react";

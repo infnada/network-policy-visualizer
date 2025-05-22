@@ -1,13 +1,10 @@
-// src/components/graph/GraphVisualization.js
 // Main component for NetworkPolicy graph visualization that uses the modular components
 
 import React, { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import _ from "lodash";
-import { getPortsText } from "../../utils/formatters";
-
-// Import helper functions and components from modular files
-import { createSimulation, createDragBehavior } from "./useGraphSimulation";
+import { getPortsText } from "../../utils/formatters.js";
+import { createSimulation, createDragBehavior } from "./useGraphSimulation.js";
 import {
   createLinkPath,
   getLinkColor,
@@ -15,10 +12,10 @@ import {
   getLinkWidth,
   getNodeTooltipContent,
   getLinkTooltipContent,
-} from "./graphStyleHelpers";
-import { createImprovedNode } from "./ImprovedNodeRenderer"; // Import the improved node renderer
-import { GraphControlPanel, InfoPanel, EmptyState } from "./GraphControls";
-import NodeCountDisplay from "./NodeCountDisplay"; // Import the new component
+} from "./graphStyleHelpers.js";
+import { createImprovedNode } from "./ImprovedNodeRenderer.js";
+import { GraphControlPanel, InfoPanel, EmptyState } from "./GraphControls.js";
+import NodeCountDisplay from "./NodeCountDisplay.js";
 
 /**
  * Main component for rendering Network Policy visualization
