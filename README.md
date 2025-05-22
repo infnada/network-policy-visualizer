@@ -1,88 +1,187 @@
 # Kubernetes NetworkPolicy Visualizer
 
-An interactive web application for visualizing Kubernetes NetworkPolicy resources. This tool helps you understand the connectivity rules defined in your Kubernetes cluster by generating a visual graph representation.
+<div align="center">
+  <img src="https://img.shields.io/github/license/infnada/k8s-network-policy-visualizer" alt="License" />
+  <img src="https://img.shields.io/github/stars/infnada/k8s-network-policy-visualizer" alt="Stars" />
+  <img src="https://img.shields.io/github/forks/infnada/k8s-network-policy-visualizer" alt="Forks" />
+  <img src="https://img.shields.io/github/issues/infnada/k8s-network-policy-visualizer" alt="Issues" />
+  <br />
+  <img src="https://img.shields.io/github/actions/workflow/status/infnada/k8s-network-policy-visualizer/docker-build.yml?branch=main" alt="Build Status" />
+  <img src="https://img.shields.io/docker/pulls/infnada/k8s-network-policy-visualizer" alt="Docker Pulls" />
+  <img src="https://img.shields.io/github/v/release/infnada/k8s-network-policy-visualizer" alt="Release" />
+</div>
 
-## Features
+<p align="center">
+  <strong>Interactive visualization tool for Kubernetes NetworkPolicy resources</strong>
+  <br>
+  <i>Understand, analyze, and manage your Kubernetes network security with visual graphs</i>
+</p>
 
-- Upload YAML/JSON files containing NetworkPolicy resources
-- Paste YAML content directly into the application
-- Interactive visualization with D3.js
-- Detailed policy information on hover
-- Comprehensive policy details view
-- Support for advanced NetworkPolicy features:
-  - Pod and namespace selectors
-  - matchLabels and matchExpressions
-  - IP CIDR blocks
-  - Combined namespace+pod selectors
-  - Ingress and egress rules
+<p align="center">
+  <img src="docs/screenshot.png" alt="NetworkPolicy Visualizer Screenshot" width="800" />
+</p>
 
-## Installation
+## 🌟 Features
 
-1. Clone the repository
-```
-git clone https://github.com/yourusername/k8s-network-policy-visualizer.git
+- **Visual Graph Representation**: Interactive visualization of NetworkPolicy connections with D3.js
+- **Direct Cluster Integration**: Connect directly to your Kubernetes cluster to fetch policies
+- **Import Options**: Upload YAML/JSON files or paste content directly
+- **Advanced Filtering**: Filter by namespace, pod, policy type, or labels
+- **Comprehensive Details**: View complete policy specifications with selectors, rules and ports
+- **Interactive Exploration**: Hover, drag, zoom and click to explore the policy graph
+- **Cross-Policy Connections**: Visualize how different policies interact with each other
+- **Node Deduplication**: Option to combine identical selectors for cleaner visualization
+- **No External Dependencies**: 100% client-side visualization with optional in-cluster deployment
+
+## 🚀 Quick Start
+
+### Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/infnada/k8s-network-policy-visualizer.git
 cd k8s-network-policy-visualizer
-```
 
-2. Install dependencies
-```
+# Install dependencies
 npm install
+
+# Start development server
+npm run dev
 ```
 
-3. Start the development server
-```
-npm start
+Visit [http://localhost:3000](http://localhost:3000) to use the application.
+
+### Using Docker
+
+```bash
+# Pull the image
+docker pull ghcr.io/infnada/k8s-network-policy-visualizer:latest
+
+# Run the container
+docker run -p 3000:3000 ghcr.io/infnada/k8s-network-policy-visualizer:latest
 ```
 
-4. Open your browser to http://localhost:3000
+Visit [http://localhost:3000](http://localhost:3000) to use the application.
 
-## Using the Application
+### Deploying to Kubernetes with Helm
+
+```bash
+# Add the Helm repository
+helm repo add k8s-npv https://infnada.github.io/k8s-network-policy-visualizer
+helm repo update
+
+# Install the chart
+helm install networkpolicy-visualizer k8s-npv/networkpolicy-visualizer
+```
+
+For more detailed deployment instructions, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## 💡 Usage
 
 ### Loading Network Policies
-- **Upload Files**: Click on the upload area to select YAML/JSON files containing NetworkPolicy resources
-- **Paste YAML**: Paste YAML content into the text area and click "Load Pasted Content"
-- **Sample Data**: Click "Use Sample Data" to see a demonstration with example policies
 
-### Interacting with the Visualization
-- **Hover** over nodes or connections to see details
-- **Drag** nodes to rearrange the layout
-- **Scroll** to zoom in and out
-- **Click** "Details" next to a policy name to see comprehensive information
+There are three ways to load NetworkPolicy resources:
 
-## Project Structure
+1. **Load from Cluster**: Connect directly to your cluster (requires appropriate RBAC permissions)
+2. **Upload Files**: Upload YAML or JSON files containing NetworkPolicy resources
+3. **Paste YAML/JSON**: Paste NetworkPolicy content directly into the application
 
-```
-├── public/
-│   └── index.html
-├── src/
-│   ├── components/
-│   │   ├── GraphVisualization.js   # D3.js visualization component
-│   │   ├── NetworkPolicyVisualizer.js  # Main container component
-│   │   ├── PolicyDetails.js        # Policy details modal
-│   │   └── Sidebar.js              # Input and control sidebar
-│   ├── utils/
-│   │   ├── formatters.js           # Text formatting utilities
-│   │   └── parsers.js              # YAML parsing and graph building
-│   ├── App.js                      # Main application component
-│   ├── index.css                   # Global styles 
-│   └── index.js                    # Application entry point
-├── package.json
-├── webpack.config.js
-├── postcss.config.js
-├── tailwind.config.js
-└── README.md
-```
+### Visualizing Policies
 
-## Building for Production
+Once loaded, you can:
 
-To create a production build:
+- **Zoom and Pan**: Use mouse wheel to zoom and drag to pan the view
+- **Hover over Nodes/Links**: View detailed information in tooltips
+- **Drag Nodes**: Rearrange the layout to better visualize connections
+- **Policy Details**: Click "Details" next to a policy name for complete information
+- **Filter Policies**: Use the filtering options to focus on specific resources
+- **Change Theme**: Toggle between light and dark themes
 
-```
+### Understanding the Visualization
+
+The visualization shows different types of resources:
+
+- **Blue Circles**: Pod selectors
+- **Green Squares**: Namespace selectors
+- **Orange Diamonds**: IP Blocks
+- **Purple Diamonds**: Combined namespace+pod selectors
+- **Red Lines**: Ingress rules (traffic flowing in)
+- **Green Lines**: Egress rules (traffic flowing out)
+
+## 🔧 Configuration
+
+The application supports several configuration options:
+
+### Environment Variables
+
+| Variable     | Description                                              | Default       |
+| ------------ | -------------------------------------------------------- | ------------- |
+| `PORT`       | Port for the server to listen on                         | `3000`        |
+| `NODE_ENV`   | Environment mode (production/development)                | `development` |
+| `KUBECONFIG` | Path to kubeconfig file (if not using in-cluster config) | ``            |
+
+### Helm Chart Values
+
+See [values.yaml](helm/networkpolicy-visualizer/values.yaml) for a complete list of configuration options.
+
+## 🔍 How It Works
+
+### Architecture
+
+The application consists of:
+
+1. **Backend API**: Node.js Express server that communicates with the Kubernetes API
+2. **Frontend Application**: React+D3.js application for interactive visualization
+3. **Kubernetes Integration**: Uses the official Kubernetes client for Node.js
+
+### Visualization Logic
+
+The visualization process involves:
+
+1. **Policy Parsing**: Converting raw NetworkPolicy objects into graph data
+2. **Graph Building**: Creating a network graph with nodes and links
+3. **Force Simulation**: Using D3.js physics-based simulation for optimal layout
+4. **Interactive Rendering**: Adding user interaction and dynamic updates
+5. **Cross-policy Analysis**: Identifying connections between different policies
+
+For technical details, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## 📚 Documentation
+
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Security Considerations](docs/SECURITY.md)
+
+### Development Environment
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
 npm run build
+
+# Run tests
+npm test
 ```
 
-This will generate optimized files in the `dist` directory.
+## 📝 License
 
-## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-MIT
+## 🔒 Security
+
+For information about security policies and procedures, see [SECURITY.md](docs/SECURITY.md).
+
+## 📊 Roadmap
+
+- [ ] Export visualization as SVG/PNG
+- [ ] Support for custom CRDs with similar network policy functionality
+- [ ] Policy validation and recommendations
+- [ ] Multi-cluster support
+- [ ] Historical policy comparison
+- [ ] Custom layout algorithms

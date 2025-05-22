@@ -1,5 +1,5 @@
 // src/components/graph/GraphControls.js
-// Components for graph controls and UI elements with theme support
+// Updated GraphControlPanel component with additional re-arrange option for classic view
 
 import React from "react";
 
@@ -18,6 +18,14 @@ export const GraphControlPanel = ({
   resetLayout,
   theme = "light",
 }) => {
+  // Function to re-arrange nodes randomly (only for classic view)
+  const shuffleNodes = () => {
+    if (visualizationType === "classic") {
+      // Trigger layout reset with a higher alpha value for more movement
+      resetLayout({ shuffleNodes: true });
+    }
+  };
+
   return (
     <div
       className={`absolute top-4 right-4 ${
@@ -75,6 +83,21 @@ export const GraphControlPanel = ({
         >
           Reset Layout
         </button>
+
+        {/* Show Re-arrange button only in classic view */}
+        {visualizationType === "classic" && (
+          <button
+            className={`${
+              theme === "dark"
+                ? "bg-purple-700 hover:bg-purple-600 text-white shadow shadow-purple-900/50"
+                : "bg-purple-500 hover:bg-purple-400 text-white"
+            } px-3 py-1 text-sm rounded transition-colors`}
+            onClick={shuffleNodes}
+            aria-label="Re-arrange nodes"
+          >
+            Re-arrange Nodes
+          </button>
+        )}
       </div>
     </div>
   );
@@ -85,9 +108,14 @@ export const GraphControlPanel = ({
  * @param {Object} props - Component props
  * @param {String} props.visualizationType - Current visualization type
  * @param {String} props.theme - Current theme ('light' or 'dark')
+ * @param {String} props.additionalInfo - Optional additional information to display
  * @returns {React.Component}
  */
-export const InfoPanel = ({ visualizationType, theme = "light" }) => {
+export const InfoPanel = ({
+  visualizationType,
+  theme = "light",
+  additionalInfo = "",
+}) => {
   return (
     <div
       className={`absolute bottom-4 left-4 ${
@@ -104,14 +132,17 @@ export const InfoPanel = ({ visualizationType, theme = "light" }) => {
         <p className="font-medium">
           {visualizationType === "enhanced"
             ? "Enhanced View: Curved lines, namespace clustering, better spacing"
-            : "Classic View: Original visualization with straight lines"}
+            : "Classic View: Traditional visualization with straight lines and improved spacing"}
         </p>
         <p>
           Tip:{" "}
           {visualizationType === "enhanced"
             ? "Nodes stay where you drag them. Hover for details."
-            : "Drag nodes to arrange, double-click to reset position."}
+            : "Drag nodes to arrange. Use 'Re-arrange Nodes' button if nodes overlap."}
         </p>
+        {additionalInfo && (
+          <p className="mt-1 text-xs italic">{additionalInfo}</p>
+        )}
       </div>
     </div>
   );

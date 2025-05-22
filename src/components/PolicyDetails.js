@@ -1,4 +1,3 @@
-// src/components/PolicyDetails.js
 import React from "react";
 
 const PolicyDetails = ({ policy, onClose, theme = "light" }) => {

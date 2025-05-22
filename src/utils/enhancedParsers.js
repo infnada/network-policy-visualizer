@@ -1,5 +1,3 @@
-// src/utils/enhancedParsers.js - Complete fix including all required functions
-
 /**
  * Builds graph data from NetworkPolicy objects with improved cross-policy connections
  * and node deduplication logic

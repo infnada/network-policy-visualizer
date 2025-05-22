@@ -53,6 +53,20 @@ export const createSimulation = (
         Math.sin(clusterAngle) * clusterRadius +
         Math.sin(nodeAngle) * nodeRadius;
     });
+  } else {
+    // For classic view, set initial positions more spread out
+    nodes.forEach((node, i) => {
+      // Calculate positions in a grid or spiral pattern
+      const nodesPerRow = Math.ceil(Math.sqrt(nodes.length));
+      const row = Math.floor(i / nodesPerRow);
+      const col = i % nodesPerRow;
+
+      // Initial positions more spread out
+      node.x =
+        width * 0.25 + (width * 0.5 * col) / nodesPerRow + Math.random() * 20;
+      node.y =
+        height * 0.25 + (height * 0.5 * row) / nodesPerRow + Math.random() * 20;
+    });
   }
 
   // Create simulation based on the selected visualization type
@@ -136,7 +150,7 @@ export const createSimulation = (
         });
       });
   } else {
-    // Classic simulation with original parameters
+    // Improved classic simulation with stronger repulsion and better spacing
     simulation = d3
       .forceSimulation(nodes)
       .force(
@@ -144,13 +158,59 @@ export const createSimulation = (
         d3
           .forceLink(links)
           .id((d) => d.id)
-          .distance((d) => (d.crossPolicy ? 180 : 120)),
+          .distance((d) => {
+            // Increase link distance for better spacing
+            if (d.crossPolicy) return 250; // Even more space for cross-policy links
+
+            // Add more space based on connections
+            const sourceConnections = links.filter(
+              (link) =>
+                link.source.id === d.source.id ||
+                link.target.id === d.source.id,
+            ).length;
+            const targetConnections = links.filter(
+              (link) =>
+                link.source.id === d.target.id ||
+                link.target.id === d.target.id,
+            ).length;
+
+            // Base distance is higher than before (180 instead of 120)
+            return 180 + (sourceConnections + targetConnections) * 10;
+          })
+          .strength(0.15), // Lower link strength for more flexibility
       )
-      .force("charge", d3.forceManyBody().strength(-500))
+      .force(
+        "charge",
+        d3
+          .forceManyBody()
+          .strength((d) => {
+            // Stronger repulsion based on number of connections
+            const connections = links.filter(
+              (link) => link.source.id === d.id || link.target.id === d.id,
+            ).length;
+            // More negative value = stronger repulsion
+            return -800 - connections * 150;
+          })
+          .distanceMax(1000), // Increased maximum distance of effect
+      )
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("x", d3.forceX(width / 2).strength(0.05))
-      .force("y", d3.forceY(height / 2).strength(0.05))
-      .force("collision", d3.forceCollide().radius(40));
+      // Spread nodes more horizontally and vertically
+      .force("x", d3.forceX(width / 2).strength(0.03))
+      .force("y", d3.forceY(height / 2).strength(0.03))
+      // Larger collision radius to prevent overlap
+      .force(
+        "collision",
+        d3
+          .forceCollide()
+          .radius((d) => {
+            const connections = links.filter(
+              (link) => link.source.id === d.id || link.target.id === d.id,
+            ).length;
+            // Larger base radius (60 instead of 40)
+            return 60 + connections * 8;
+          })
+          .strength(0.9), // Stronger collision force
+      );
   }
 
   return simulation;

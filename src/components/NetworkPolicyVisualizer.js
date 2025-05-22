@@ -5,7 +5,6 @@ import Sidebar from "./Sidebar";
 import ThemeToggle from "./ThemeToggle";
 import CyberpunkTheme from "./CyberpunkTheme";
 import { parseYaml, parseNetworkPolicy } from "../utils/parsers";
-// Import the enhanced buildGraphData function
 import { buildGraphData } from "../utils/enhancedParsers";
 
 const NetworkPolicyVisualizer = () => {

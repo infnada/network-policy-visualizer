@@ -32,15 +32,49 @@ const GraphVisualization = ({
   const graphContainerRef = useRef(null);
   const [visualizationType, setVisualizationType] = useState("enhanced"); // 'enhanced' or 'classic'
 
+  // Function to reset layout with optional parameters
+  const resetLayout = (options = {}) => {
+    if (graphData.nodes.length > 0) {
+      renderGraph(options);
+    }
+  };
+
+  // Double-click on background to reset view (only for classic view)
+  const handleBackgroundDoubleClick = () => {
+    if (visualizationType === "classic") {
+      resetLayout({ shuffleNodes: true });
+    }
+  };
+
   // Main graph rendering function
-  const renderGraph = () => {
+  const renderGraph = (options = {}) => {
     if (!svgRef.current || !graphData.nodes.length) return;
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
 
+    // Remove any existing tooltips
+    d3.select(graphContainerRef.current).selectAll(".graph-tooltip").remove();
+
     const width = graphContainerRef.current.clientWidth || 800;
     const height = graphContainerRef.current.clientHeight || 600;
+
+    // If classic view and shuffleNodes is requested, jitter the initial positions
+    if (visualizationType === "classic" && options.shuffleNodes) {
+      graphData.nodes.forEach((node) => {
+        // Add random offset to create more space between nodes
+        const randomAngle = Math.random() * 2 * Math.PI;
+        const randomDistance = 50 + Math.random() * 150;
+
+        // Calculate new position with a radial distribution
+        node.x = width / 2 + Math.cos(randomAngle) * randomDistance;
+        node.y = height / 2 + Math.sin(randomAngle) * randomDistance;
+
+        // Clear any fixed positions
+        node.fx = null;
+        node.fy = null;
+      });
+    }
 
     const svg = d3
       .select(svgRef.current)
@@ -107,6 +141,11 @@ const GraphVisualization = ({
       nodesByNamespace,
     );
 
+    // If we're in classic view with shuffleNodes, apply a stronger initial force
+    if (visualizationType === "classic" && options.shuffleNodes) {
+      simulation.alpha(1).alphaDecay(0.02);
+    }
+
     // Create the links - either curved paths or straight lines
     let link;
 
@@ -168,25 +207,25 @@ const GraphVisualization = ({
           : "url(#arrowhead-egress)";
       });
     } else {
-      // Classic: lines with separate arrow markers
+      // Classic: IMPROVED lines with separate arrow markers
       link = container
         .append("g")
         .selectAll("g")
         .data(graphData.links)
         .join("g");
 
-      // Add link lines
+      // Add link lines with improved styling
       const linkLine = link
         .append("line")
         .attr("stroke", (d) => getLinkColor(d, theme))
         .attr("stroke-opacity", (d) => getLinkOpacity(d))
-        .attr("stroke-width", (d) => getLinkWidth(d))
+        .attr("stroke-width", (d) => getLinkWidth(d) * 1.2) // Slightly thicker lines
         .attr("stroke-dasharray", (d) => (d.crossPolicy ? "5,3" : null));
 
-      // Add arrows to links
+      // Add improved arrows to links - larger and more visible
       link
         .append("polygon")
-        .attr("points", "0,-3 6,0 0,3")
+        .attr("points", "0,-4 8,0 0,4") // Bigger arrows (was 0,-3 6,0 0,3)
         .attr("fill", (d) => getLinkColor(d, theme));
     }
 
@@ -198,20 +237,36 @@ const GraphVisualization = ({
         if (currentVisualizationType === "enhanced") {
           link.attr("d", (d) => createLinkPath(d, currentVisualizationType));
         } else {
-          // For classic view, update the lines and arrow positions
+          // For classic view, update the lines and arrow positions with better spacing
           link
             .selectAll("line")
             .attr("x1", (d) => d.source.x)
             .attr("y1", (d) => d.source.y)
-            .attr("x2", (d) => d.target.x)
-            .attr("y2", (d) => d.target.y);
+            .attr("x2", (d) => {
+              // Calculate a point slightly before the target to avoid overlap
+              const dx = d.target.x - d.source.x;
+              const dy = d.target.y - d.source.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              // Stop line slightly before reaching target node (30px buffer)
+              const bufferDistance = Math.min(30, distance * 0.2);
+              return d.target.x - (dx * bufferDistance) / distance;
+            })
+            .attr("y2", (d) => {
+              // Same calculation for y coordinate
+              const dx = d.target.x - d.source.x;
+              const dy = d.target.y - d.source.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const bufferDistance = Math.min(30, distance * 0.2);
+              return d.target.y - (dy * bufferDistance) / distance;
+            });
 
           link.selectAll("polygon").attr("transform", (d) => {
             const dx = d.target.x - d.source.x;
             const dy = d.target.y - d.source.y;
             const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
-            const offsetRatio = 0.9;
+            // Position arrow slightly before target node
+            const offsetRatio = 0.85; // Was 0.9, now smaller to leave more space
             const x = d.source.x + dx * offsetRatio;
             const y = d.source.y + dy * offsetRatio;
 
@@ -639,21 +694,45 @@ const GraphVisualization = ({
         // Exit
         namespaceLabels.exit().remove();
       } else {
-        // For classic view with straight lines
+        // For classic view with straight lines - IMPROVED positioning
         link
           .selectAll("line")
           .attr("x1", (d) => d.source.x)
           .attr("y1", (d) => d.source.y)
-          .attr("x2", (d) => d.target.x)
-          .attr("y2", (d) => d.target.y);
+          .attr("x2", (d) => {
+            // Calculate a point slightly before the target to avoid overlap
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            // Stop line slightly before reaching target node (30px buffer)
+            const bufferDistance = Math.min(30, distance * 0.2);
+            return distance > 0
+              ? d.target.x - (dx * bufferDistance) / distance
+              : d.target.x;
+          })
+          .attr("y2", (d) => {
+            // Same calculation for y coordinate
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const bufferDistance = Math.min(30, distance * 0.2);
+            return distance > 0
+              ? d.target.y - (dy * bufferDistance) / distance
+              : d.target.y;
+          });
 
-        // Update arrow positions
+        // Update arrow positions with better placement
         link.selectAll("polygon").attr("transform", (d) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
-          const offsetRatio = 0.9;
+          // Position arrow at better offset
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const offsetRatio =
+            distance > 0
+              ? Math.min(0.85, Math.max(0.6, 0.9 - 80 / distance))
+              : 0;
           const x = d.source.x + dx * offsetRatio;
           const y = d.source.y + dy * offsetRatio;
 
@@ -715,16 +794,25 @@ const GraphVisualization = ({
     <div
       className={`flex-1 relative ${theme === "dark" ? "bg-gray-900" : ""}`}
       ref={graphContainerRef}
+      onDoubleClick={handleBackgroundDoubleClick}
     >
       {graphData.nodes.length > 0 ? (
         <>
           <GraphControlPanel
             visualizationType={visualizationType}
             setVisualizationType={setVisualizationType}
-            resetLayout={renderGraph}
+            resetLayout={resetLayout}
             theme={theme}
           />
-          <InfoPanel visualizationType={visualizationType} theme={theme} />
+          <InfoPanel
+            visualizationType={visualizationType}
+            theme={theme}
+            additionalInfo={
+              visualizationType === "classic"
+                ? "Double-click background to re-arrange nodes if they overlap."
+                : ""
+            }
+          />
           <NodeCountDisplay
             graphData={graphData}
             deduplicateNodes={deduplicateNodes}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import NodeFilter from "./NodeFilter"; // Import the NodeFilter component
+import NodeFilter from "./NodeFilter";
+import ClusterIntegration from "./ClusterIntegration";
 
 const Sidebar = ({
   policies,
@@ -582,6 +583,20 @@ const Sidebar = ({
           onClick={() => toggleSection("policies")}
         >
           Policies
+        </button>
+        <button
+          className={`flex-1 px-2 py-1 text-xs rounded-t-md ${
+            expandedSection === "cluster"
+              ? theme === "dark"
+                ? "bg-cyan-600 text-white"
+                : "bg-green-500 text-white"
+              : theme === "dark"
+                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                : "bg-gray-300"
+          }`}
+          onClick={() => toggleSection("cluster")}
+        >
+          Cluster
         </button>
       </div>
 
@@ -1197,6 +1212,32 @@ const Sidebar = ({
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {expandedSection === "cluster" && (
+          <div className="h-full overflow-auto">
+            <h2 className="text-lg font-semibold mb-2">Load from Kubernetes</h2>
+            <div className="flex flex-col space-y-2">
+              <p
+                className={theme === "dark" ? "text-gray-300" : "text-gray-600"}
+              >
+                Load NetworkPolicy resources directly from your Kubernetes
+                cluster.
+              </p>
+              <ClusterIntegration
+                onPoliciesLoaded={(policies) => {
+                  setAllPolicies(policies);
+                  setFilteredPolicies(policies);
+                }}
+                theme={theme}
+              />
+              <div
+                className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"} mt-2`}
+              >
+                Requires RBAC permissions to read NetworkPolicy resources.
+              </div>
+            </div>
           </div>
         )}
       </div>

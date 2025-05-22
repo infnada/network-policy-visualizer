@@ -1,4 +1,3 @@
-// src/components/CyberpunkTheme.js
 import React from "react";
 
 /**
