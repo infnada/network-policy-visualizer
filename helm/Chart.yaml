@@ -1,5 +1,5 @@
 apiVersion: v2
-name: networkpolicy-visualizer
+name: network-policy-visualizer
 description: A Helm chart for Kubernetes NetworkPolicy Visualizer
 type: application
 version: 0.1.0

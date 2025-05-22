@@ -122,7 +122,7 @@ The application supports several configuration options:
 
 ### Helm Chart Values
 
-See [values.yaml](helm/networkpolicy-visualizer/values.yaml) for a complete list of configuration options.
+See [values.yaml](helm/values.yaml) for a complete list of configuration options.
 
 ## 🔍 How It Works
 
