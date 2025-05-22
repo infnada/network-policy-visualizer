@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: networkpolicy-visualizer
+  repository: ghcr.io/infnada/k8s-network-policy-visualizer
   tag: latest
   pullPolicy: IfNotPresent
 
