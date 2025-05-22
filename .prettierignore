@@ -1,0 +1,23 @@
+# Build outputs
+dist/
+build/
+*.min.js
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.bundle.js
+
+# Package files
+package-lock.json
+yarn.lock
+
+# Config files
+webpack.config.js
+
+# Documentation
+*.md
+
+# Logs
+*.log
