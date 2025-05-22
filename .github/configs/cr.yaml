@@ -1,0 +1,7 @@
+# Configuration for chart-releaser
+owner: infnada
+git-repo: k8s-network-policy-visualizer
+charts-repo-url: https://infnada.github.io/k8s-network-policy-visualizer
+index-path: ./index.yaml
+packages-with-index: true
+skip-existing: true

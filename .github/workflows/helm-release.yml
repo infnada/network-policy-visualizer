@@ -25,7 +25,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
-          version: v3.11.1
+          version: v3.14.0
 
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.7.0
@@ -48,6 +48,8 @@ jobs:
     if: github.event_name != 'pull_request'
     permissions:
       contents: write
+      packages: write
+      pages: write
 
     steps:
       - name: Checkout repository
@@ -63,12 +65,12 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
-          version: v3.11.1
+          version: v3.14.0
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
         with:
           charts_dir: helm
-          charts_repo_url: https://username.github.io/k8s-network-policy-visualizer
+          config: .github/configs/cr.yaml
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
