@@ -2,7 +2,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
-// Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -11,7 +10,8 @@ export default {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-    publicPath: '/'
+    publicPath: '/',
+    clean: true,
   },
   module: {
     rules: [
@@ -29,8 +29,21 @@ export default {
         test: /\.css$/,
         use: [
           'style-loader',
-          { loader: 'css-loader', options: { importLoaders: 1 } },
-          'postcss-loader'
+          { 
+            loader: 'css-loader', 
+            options: { 
+              importLoaders: 1,
+              sourceMap: true
+            } 
+          },
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                config: path.resolve(__dirname, 'postcss.config.cjs'),
+              },
+            },
+          }
         ]
       }
     ]
@@ -50,6 +63,7 @@ export default {
     },
     port: 3000,
     historyApiFallback: true,
-    hot: true
+    hot: true,
+    open: true
   }
 };
