@@ -13,6 +13,7 @@ maintainers:
 keywords:
   - kubernetes
   - networkpolicy
+  - policy
   - visualization
   - security
   - networking
