@@ -3,6 +3,29 @@ entries:
   network-policy-visualizer:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2025-05-23T10:01:57.158841815Z"
+    description: A Helm chart for Kubernetes NetworkPolicy Visualizer
+    digest: a3f9889b1064b97f6678ca0cae1e767d029efa283059f5c85281d388b90e56bd
+    home: https://github.com/infnada/k8s-network-policy-visualizer
+    keywords:
+    - kubernetes
+    - networkpolicy
+    - policy
+    - visualization
+    - security
+    - networking
+    maintainers:
+    - name: infnada
+      url: https://github.com/infnada
+    name: network-policy-visualizer
+    sources:
+    - https://github.com/infnada/k8s-network-policy-visualizer
+    type: application
+    urls:
+    - network-policy-visualizer-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2025-05-23T09:50:17.51441753Z"
     description: A Helm chart for Kubernetes NetworkPolicy Visualizer
     digest: 1d5dd6975d84c6666f809bedfd700ea99e68b32a966cbd335875429d5969741c
@@ -46,4 +69,4 @@ entries:
     urls:
     - network-policy-visualizer-0.1.0.tgz
     version: 0.1.0
-generated: "2025-05-23T09:50:17.514425485Z"
+generated: "2025-05-23T10:01:57.158859459Z"
