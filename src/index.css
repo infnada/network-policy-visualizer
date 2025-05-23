@@ -1,0 +1,151 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Root CSS variables for theming */
+:root {
+  /* Default light theme */
+  --bg-primary: #f3f4f6;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f9fafb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --accent-primary: #2563eb;
+  --accent-secondary: #3b82f6;
+  --neon-glow: none;
+  --line-primary: rgba(37, 99, 235, 0.7);
+  --line-secondary: rgba(59, 130, 246, 0.7);
+
+  /* Node colors */
+  --node-pod: #66aaff;
+  --node-namespace: #44cc44;
+  --node-ipblock: #ffaa44;
+  --node-combined: #9966cc;
+
+  /* Transition settings */
+  --theme-transition:
+    background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Apply theme variables with transition */
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: var(--theme-transition);
+}
+
+code {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+/* Theme specific classes */
+.themed-bg-primary {
+  background-color: var(--bg-primary);
+  transition: var(--theme-transition);
+}
+
+.themed-bg-secondary {
+  background-color: var(--bg-secondary);
+  transition: var(--theme-transition);
+}
+
+.themed-bg-tertiary {
+  background-color: var(--bg-tertiary);
+  transition: var(--theme-transition);
+}
+
+.themed-text-primary {
+  color: var(--text-primary);
+  transition: var(--theme-transition);
+}
+
+.themed-text-secondary {
+  color: var(--text-secondary);
+  transition: var(--theme-transition);
+}
+
+.themed-accent-primary {
+  color: var(--accent-primary);
+  transition: var(--theme-transition);
+}
+
+.themed-accent-secondary {
+  color: var(--accent-secondary);
+  transition: var(--theme-transition);
+}
+
+/* Cyberpunk specific styles */
+.theme-dark .cyberpunk-header {
+  background: linear-gradient(90deg, #1e3a8a, #7e22ce);
+  border-bottom: 1px solid var(--accent-primary);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 8px var(--accent-primary);
+}
+
+.theme-dark .cyberpunk-sidebar {
+  background: linear-gradient(135deg, #141b29 0%, #0f172a 100%);
+  border-right: 1px solid var(--accent-primary);
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .cyberpunk-card {
+  background-color: var(--bg-tertiary);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 0 4px rgba(6, 182, 212, 0.2);
+}
+
+.theme-dark .cyberpunk-button {
+  background: linear-gradient(90deg, #0e7490, #0891b2);
+  border: 1px solid rgba(6, 182, 212, 0.6);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+  color: #e2f3f5;
+  transition: all 0.2s ease;
+}
+
+.theme-dark .cyberpunk-button:hover {
+  background: linear-gradient(90deg, #0891b2, #06b6d4);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
+}
+
+.theme-dark .cyberpunk-input {
+  background-color: #1a2235;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: #e2f3f5;
+}
+
+.theme-dark .cyberpunk-input:focus {
+  border-color: #06b6d4;
+  box-shadow:
+    0 0 0 1px #06b6d4,
+    0 0 8px rgba(6, 182, 212, 0.3);
+}
+
+/* Graph element styles for dark theme */
+.theme-dark .graph-tooltip {
+  background-color: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(6, 182, 212, 0.3);
+}
+
+.theme-dark .graph-control-panel {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--accent-primary);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(6, 182, 212, 0.3);
+}
