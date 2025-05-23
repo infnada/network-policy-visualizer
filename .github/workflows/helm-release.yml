@@ -74,3 +74,11 @@ jobs:
           config: .github/configs/cr.yaml
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Commit and push chart index
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git add docs/
+          git commit -m "Update Helm chart index" || exit 0
+          git push
