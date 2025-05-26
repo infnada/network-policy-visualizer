@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { parseNetworkPolicy } from "../../utils/parsers.js";
 
 /**
  * Component for handling loading network policies directly from the Kubernetes cluster
@@ -26,13 +27,45 @@ const ClusterIntegration = ({ onPoliciesLoaded, theme = "light" }) => {
       const response = await fetch(endpoint);
 
       if (!response.ok) {
-        throw new Error(`Failed to load policies: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.details ||
+            errorData.error ||
+            `Failed to load policies: ${response.statusText}`,
+        );
       }
 
-      const policies = await response.json();
+      const rawPolicies = await response.json();
 
-      if (Array.isArray(policies) && policies.length > 0) {
-        onPoliciesLoaded(policies);
+      if (Array.isArray(rawPolicies) && rawPolicies.length > 0) {
+        const parsedPolicies = rawPolicies
+          .map((rawPolicy) => {
+            try {
+              // The cluster returns raw Kubernetes NetworkPolicy objects
+              // We need to parse them the same way as file uploads
+              return parseNetworkPolicy(rawPolicy);
+            } catch (parseError) {
+              console.error(
+                "Error parsing policy from cluster:",
+                parseError,
+                rawPolicy,
+              );
+              return null;
+            }
+          })
+          .filter(Boolean); // Remove any null entries from failed parsing
+
+        if (parsedPolicies.length > 0) {
+          console.log(
+            "Successfully parsed policies from cluster:",
+            parsedPolicies,
+          );
+          onPoliciesLoaded(parsedPolicies);
+        } else {
+          setError(
+            "No valid network policies could be parsed from the cluster",
+          );
+        }
       } else {
         setError(
           "No network policies found in the cluster" +
