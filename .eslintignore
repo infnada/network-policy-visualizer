@@ -1,0 +1,32 @@
+# Build outputs
+dist/
+build/
+*.min.js
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.bundle.js
+
+# Config files that don't need linting
+webpack.config.js
+tailwind.config.js
+postcss.config.js
+
+# Documentation
+docs/
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
