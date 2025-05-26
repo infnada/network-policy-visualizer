@@ -61,6 +61,26 @@ export const parseNetworkPolicy = (policy) => {
     if (!policy.metadata) policy.metadata = {};
     if (!policy.spec) policy.spec = {};
 
+    if (policy.spec.ingress && Array.isArray(policy.spec.ingress)) {
+      policy.spec.ingress = policy.spec.ingress.map((rule) => {
+        if (rule._from && !rule.from) {
+          rule.from = rule._from;
+          delete rule._from;
+        }
+        return rule;
+      });
+    }
+
+    if (policy.spec.egress && Array.isArray(policy.spec.egress)) {
+      policy.spec.egress = policy.spec.egress.map((rule) => {
+        if (rule._to && !rule.to) {
+          rule.to = rule._to;
+          delete rule._to;
+        }
+        return rule;
+      });
+    }
+
     // Basic structure with fallbacks for required fields
     const result = {
       name: policy.metadata?.name || "unnamed-policy",
